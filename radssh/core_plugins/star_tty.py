@@ -20,27 +20,37 @@ import termios
 import tty
 import os
 import fcntl
+import time
 
 
 def posix_shell(chan, encoding='UTF-8'):
     try:
-        chan.settimeout(0.0)
-
-        while True:
-            r, w, e = select.select([chan, sys.stdin], [], [])
+        do_loop = True
+        while do_loop:
+            r, w, e = select.select([chan, sys.stdin], [], [], 0.1)
             if chan in r:
-                try:
-                    x = chan.recv(1024)
-                    if len(x) == 0:
-                        sys.stdout.write('\r\n*** EOF ***\r\n')
-                        break
-                    print(x.decode(encoding), end='')
+                x = chan.recv(4096)
+                if len(x) == 0:
+                    while True:
+                        try:
+                            sys.stdout.write('\r\n*** EOF ***\r\n')
+                            do_loop = False
+                            break
+                        except IOError:
+                            time.sleep(0.02)
                     sys.stdout.flush()
-                except socket.timeout:
-                    pass
+                elif len(x) > 0:
+                    while True:
+                        try:
+                            sys.stdout.write(x.decode(encoding))
+                            break
+                        except IOError:
+                            time.sleep(0.02)
+                    sys.stdout.flush()
             if sys.stdin in r:
                 x = sys.stdin.read()
-                chan.send(x.encode(encoding))
+                if len(x) >= 0:
+                    chan.send(x.encode(encoding))
     except Exception as e:
         print('Exception in TTY session\n%r\n' % e)
 
