@@ -23,6 +23,7 @@ from __future__ import print_function
 import sys
 import threading
 import getpass
+import re
 from collections import deque, defaultdict
 try:
     import queue
@@ -51,11 +52,20 @@ def monochrome(tag, text):
     for line in text.split('\n'):
         yield '[%s] %s\n' % (label, line)
 
+# mck
+
+def myhash(hstr0):
+    hstr1 = re.sub('[^0-9]','.', hstr0)
+    hstr2 = hstr1.replace(".","0")
+    hstr = hstr2[-3:]
+    hval = int(hstr)
+    return hval
 
 def colorizer(tag, text):
     '''Basic ANSI colorized output - host hash value map to 7-color palette, stderr bold'''
     label, hilight = tag
-    color = 1 + hash(label) % 7
+    #color = 1 + hash(label) % 7
+    color = 1 + myhash(str(label)) % 7
     for line in text.split('\n'):
         if hilight:
             yield '\033[30;4%dm[%s]\033[0;1;3%dm %s\033[0m\n' % (color, label, color, line)

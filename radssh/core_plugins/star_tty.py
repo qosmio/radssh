@@ -20,23 +20,57 @@ import termios
 import tty
 import os
 import fcntl
+import time
+
+
+def posix_shell2(chan, encoding='UTF-8'):
+    try:
+        do_loop = True
+        while do_loop:
+            r, w, e = select.select([chan, sys.stdin], [], [], 0.1)
+            if chan in r:
+                x = chan.recv(4096)
+                if len(x) == 0:
+                    while True:
+                        try:
+                            sys.stdout.write('\r\n*** EOF ***\r\n')
+                            do_loop = False
+                            break
+                        except IOError:
+                            time.sleep(0.02)
+                    sys.stdout.flush()
+                elif len(x) > 0:
+                    while True:
+                        try:
+                            sys.stdout.write(x.decode(encoding))
+                            break
+                        except IOError:
+                            time.sleep(0.02)
+                    sys.stdout.flush()
+            if sys.stdin in r:
+                x = sys.stdin.read()
+                if len(x) >= 0:
+                    chan.send(x.encode(encoding))
+    except Exception as e:
+        print('Exception in TTY session\n%r\n' % e)
 
 
 def posix_shell(chan, encoding='UTF-8'):
     partial_buf = b''
     try:
         while True:
-            r, w, e = select.select([chan, sys.stdin], [sys.stdout], [])
-            # Make sure we can read from socket and write to stdout...
-            if (chan in r) and (sys.stdout in w):
+            r, w, e = select.select([chan, sys.stdin], [], [])
+            if (chan in r):
                 try:
-                    x = chan.recv(1024)
-                    if len(x) == 0:
-                        sys.stdout.write('\r\n*** EOF ***\r\n')
-                        break
-                    print((partial_buf + x).decode(encoding), end='')
-                    sys.stdout.flush()
-                    partial_buf = b''
+                    x = chan.recv(128)
+                    r1, w1, e1 = select.select([], [sys.stdout], [])
+                    if (sys.stdout in w1):
+                        if len(x) == 0:
+                            sys.stdout.write('\r\n*** EOF ***\r\n')
+                            break
+                        print((partial_buf + x).decode(encoding), end='')
+                        sys.stdout.flush()
+                        partial_buf = b''
                 except socket.timeout:
                     pass
                 except UnicodeError:
