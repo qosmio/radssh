@@ -25,6 +25,7 @@ import fcntl
 def posix_shell(chan, encoding='UTF-8'):
     partial_buf = b''
     try:
+        chan.send(('export TERM=xterm-256color; tset\r\n').encode(encoding))
         while True:
             r, w, e = select.select([chan, sys.stdin], [], [])
             if (chan in r):
