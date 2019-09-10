@@ -448,7 +448,7 @@ class Cluster(object):
         self.log_out = self.defaults.get('log_out', 'out.log').strip()
         self.log_err = self.defaults.get('log_err', 'err.log').strip()
         thread_count = min(int(self.defaults.get('max_threads')), len(hostlist))
-        self.dispatcher = Dispatcher(outQ=queue.Queue(), threadpool_size=thread_count)
+        self.dispatcher = Dispatcher(outQ=queue.Queue(), threadpool_size=thread_count, dynamic_expansion=True)
         self.pending = {}
         self.uuid = uuid.uuid1()
         self.connections = {}

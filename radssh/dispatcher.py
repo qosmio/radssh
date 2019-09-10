@@ -88,7 +88,7 @@ class Dispatcher(object):
         if dynamic_expansion:
             # Start a few threads now, submit will dynamically grow if needed
             self.dynamic = True
-            self.start_threads(10)
+            self.start_threads(8)
         else:
             self.dynamic = False
             self.start_threads(threadpool_size)
@@ -113,9 +113,9 @@ class Dispatcher(object):
             raise TypeError('Cannot use %r as dispatch handler' % handler)
         if self.terminated.is_set():
             raise RuntimeError('Dispatcher has been terminated: Unable to submit calls')
-        if self.dynamic and self.inQ.size() > 1:
-            # Start a few more worker threads if we are backlogged
-            self.start_threads(3)
+#       if self.dynamic and self.inQ.qsize() > 1:
+#           # Start a few more worker threads if we are backlogged
+#           self.start_threads(3)
         job_id = next(self.job_sequence)
         self.inQ.put((job_id, handler, args, kwargs))
         self.requests += 1
