@@ -111,6 +111,8 @@ def radssh_tty(cluster, logdir, cmd, *args):
     old_fcntl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
     fcntl.fcntl(sys.stdin, fcntl.F_SETFL, old_fcntl | os.O_NONBLOCK)
     prompt_delay = 3.0
+    if (cmd == '*tty1'):
+        prompt_delay = 0.0
     for x in args:
         if not cluster.locate(x):
             print('Skipping TTY request for %s (not found)\r' % str(x))
@@ -153,4 +155,4 @@ def radssh_tty(cluster, logdir, cmd, *args):
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
     fcntl.fcntl(sys.stdin, fcntl.F_SETFL, old_fcntl)
 
-star_commands = {'*tty': radssh_tty}
+star_commands = {'*tty': radssh_tty, '*tty1': radssh_tty}
