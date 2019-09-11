@@ -25,7 +25,7 @@ import time
 
 def posix_shell2(chan, encoding='UTF-8'):
     try:
-        chan.send(('export TERM=xterm-256color; tset\r\n').encode(encoding))
+        chan.send(('export TERM=xterm-256color; tset\r').encode(encoding))
         do_loop = True
         while do_loop:
             r, w, e = select.select([chan, sys.stdin], [], [], 0.1)
@@ -59,7 +59,7 @@ def posix_shell2(chan, encoding='UTF-8'):
 def posix_shell(chan, encoding='UTF-8'):
     partial_buf = b''
     try:
-        chan.send(('export TERM=xterm-256color; tset\r\n').encode(encoding))
+        chan.send(('export TERM=xterm-256color; tset\r').encode(encoding))
         while True:
             r, w, e = select.select([chan, sys.stdin], [], [])
             if (chan in r):
@@ -118,19 +118,20 @@ def radssh_tty(cluster, logdir, cmd, *args):
             print('Skipping TTY request for %s (not found)\r' % str(x))
             continue
         try:
-            print('Starting TTY session for [%s] in %g seconds...\r' % (x, prompt_delay))
-            print(
-                '(Press \'S\' to skip, \'X\' to abort, any other key to connect immediately)',
-                end='')
-            sys.stdout.flush()
-            r, w, e = select.select([sys.stdin], [], [], prompt_delay)
-            print('\r\n')
-            if r:
-                keystroke = sys.stdin.read()
-                if keystroke in ('s', 'S'):
-                    continue
-                if keystroke in ('x', 'X'):
-                    break
+            if (cmd != '*tty1'):
+                print('Starting TTY session for [%s] in %g seconds...\r' % (x, prompt_delay))
+                print(
+                    '(Press \'S\' to skip, \'X\' to abort, any other key to connect immediately)',
+                    end='')
+                sys.stdout.flush()
+                r, w, e = select.select([sys.stdin], [], [], prompt_delay)
+                print('\r\n')
+                if r:
+                    keystroke = sys.stdin.read()
+                    if keystroke in ('s', 'S'):
+                        continue
+                    if keystroke in ('x', 'X'):
+                        break
         except Exception as e:
             print(e)
         try:
@@ -142,7 +143,8 @@ def radssh_tty(cluster, logdir, cmd, *args):
             session = t.open_session()
             session.set_combine_stderr(True)
             session.get_pty(width=cols, height=lines)
-            print('Starting TTY session for %s\r' % str(x))
+            if (cmd != '*tty1'):
+                print('Starting TTY session for %s\r' % str(x))
             session.invoke_shell()
             posix_shell(session, cluster.defaults['character_encoding'])
             print('TTY session for %s completed\r' % str(x))
