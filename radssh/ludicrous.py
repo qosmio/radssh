@@ -18,7 +18,7 @@ def null_hostkey_verify(*args):
 
 
 def init(*args, **kwargs):
-	print '*** Ludicrous Speed ***'
+	# print '*** Ludicrous Speed ***'
 	# print args
 	# pprint.pprint(kwargs)
 	radssh.known_hosts.verify_transport_key = null_hostkey_verify
