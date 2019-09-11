@@ -84,7 +84,8 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None):
                 for feed in command_listeners:
                     feed_result = feed(cmd)
                     if feed_result:
-                        cluster.console.message('Command modified from "%s" to "%s"' % (cmd, feed_result))
+                        if defaults['show_altered_commands'] == 'on':
+                            cluster.console.message('Command modified from "%s" to "%s"' % (cmd, feed_result))
                         cmd = str(feed_result)
                 if logdir:
                     with open(os.path.join(logdir, 'session.commands'), 'a') as f:
@@ -448,6 +449,13 @@ def radssh_shell_main():
 
     # Add TAB completion for *commands and remote file paths
     tab_completion = radssh_tab_handler(cluster, star)
+
+    # mck
+    if (len(hosts) == 1):
+        star.call(cluster, logdir, '*tty1')
+        cluster.console.join()
+        cluster.close_connections()
+        sys.exit(0)
 
     # With the cluster object, start interactive session
     shell(cluster=cluster, logdir=logdir, defaults=defaults)
