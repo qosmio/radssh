@@ -26,7 +26,7 @@ import time
 def posix_shell2(chan, encoding='UTF-8'):
     try:
         chan.send(('export TERM=xterm-256color; tset\r').encode(encoding))
-        chan.send(('export SSHIP=$(echo $SSH_CLIENT | awk \'{print $1}\')\r').encode(encoding))
+        chan.send(('export sship=$(echo $SSH_CLIENT | awk \'{print $1}\')\r').encode(encoding))
         chan.send(('alias lla=\'ls -lAtr\'\r').encode(encoding))
         do_loop = True
         while do_loop:
@@ -62,7 +62,7 @@ def posix_shell(chan, encoding='UTF-8'):
     partial_buf = b''
     try:
         chan.send(('export TERM=xterm-256color; tset\r').encode(encoding))
-        chan.send(('export SSHIP=$(echo $SSH_CLIENT | awk \'{print $1}\')\r').encode(encoding))
+        chan.send(('export sship=$(echo $SSH_CLIENT | awk \'{print $1}\')\r').encode(encoding))
         chan.send(('alias lla=\'ls -lAtr\'\r').encode(encoding))
         while True:
             r, w, e = select.select([chan, sys.stdin], [], [])
