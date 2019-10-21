@@ -55,10 +55,13 @@ def monochrome(tag, text):
 # mck
 
 def myhash(hstr0):
+    hval = re.findall("\d+", hstr0)
+    '''
     hstr1 = re.sub('[^0-9]','.', hstr0)
     hstr2 = hstr1.replace(".","0")
     hstr = hstr2[-3:]
     hval = int(hstr)
+    '''
     return hval
 
 def colorizer(tag, text):
