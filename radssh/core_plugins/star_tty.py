@@ -28,6 +28,7 @@ def posix_shell2(chan, encoding='UTF-8'):
         chan.send(('export TERM=xterm-256color; tset\r').encode(encoding))
         chan.send(('export sship=$(echo $SSH_CLIENT | awk \'{print $1}\')\r').encode(encoding))
         chan.send(('alias lla=\'ls -lAtr\'\r').encode(encoding))
+        chan.send(('alias vi=\'vim -c ":hi Search cterm=NONE ctermfg=grey ctermbg=darkred"\'\r').encode(encoding))
         do_loop = True
         while do_loop:
             r, w, e = select.select([chan, sys.stdin], [], [], 0.1)
@@ -64,6 +65,7 @@ def posix_shell(chan, encoding='UTF-8'):
         chan.send(('export TERM=xterm-256color; tset\r').encode(encoding))
         chan.send(('export sship=$(echo $SSH_CLIENT | awk \'{print $1}\')\r').encode(encoding))
         chan.send(('alias lla=\'ls -lAtr\'\r').encode(encoding))
+        chan.send(('alias vi=\'vim -c ":hi Search cterm=NONE ctermfg=grey ctermbg=darkred"\'\r').encode(encoding))
         while True:
             r, w, e = select.select([chan, sys.stdin], [], [])
             if (chan in r):
