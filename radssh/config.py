@@ -52,6 +52,7 @@ shell.console=color
 stalled_job_buffer=0
 
 max_threads=120
+show_altered_commands=off
 # Automatically save log files into date/time-stamped local directory
 logdir=session_%Y%m%d_%H%M%S
 # Log all normal output to given filename in logdir. Set empty to turn off
