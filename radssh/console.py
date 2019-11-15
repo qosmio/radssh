@@ -55,7 +55,7 @@ def monochrome(tag, text):
 # mck
 
 def hsum(hstr0):
-    temp = ""
+    temp = "0"
     Sum = 0
     for ch in hstr0:
         if (ch.isdigit()):
