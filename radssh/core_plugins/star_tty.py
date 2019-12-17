@@ -30,6 +30,7 @@ def posix_shell2(chan, encoding='UTF-8'):
         chan.send(('alias rm=\'rm -i\'\r').encode(encoding))
         chan.send(('alias lla=\'ls -lAtr\'\r').encode(encoding))
         chan.send(('alias vi=\'vim -c ":hi Search cterm=NONE ctermfg=grey ctermbg=darkred"\'\r').encode(encoding))
+        chan.send(('bind \'set enable-bracketed-paste on\'\r').encode(encoding))
         do_loop = True
         while do_loop:
             r, w, e = select.select([chan, sys.stdin], [], [], 0.1)
@@ -68,6 +69,7 @@ def posix_shell(chan, encoding='UTF-8'):
         chan.send(('alias rm=\'rm -i\'\r').encode(encoding))
         chan.send(('alias lla=\'ls -lAtr\'\r').encode(encoding))
         chan.send(('alias vi=\'vim -c ":hi Search cterm=NONE ctermfg=grey ctermbg=darkred"\'\r').encode(encoding))
+        chan.send(('bind \'set enable-bracketed-paste on\'\r').encode(encoding))
         while True:
             r, w, e = select.select([chan, sys.stdin], [], [])
             if (chan in r):
