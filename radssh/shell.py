@@ -73,7 +73,7 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None):
                     cmd = next(playbackfile)
                     print('%s %s' % (defaults['shell.prompt'], cmd.strip()))
                 except StopIteration:
-                    break
+                    return
             else:
                 try:
                     cmd = raw_input('%s ' % defaults['shell.prompt'])
@@ -174,6 +174,10 @@ class radssh_tab_handler(object):
             readline.parse_and_bind('bind ^I rl_complete')
         else:
             readline.parse_and_bind('tab: complete')
+        for t in self.cluster.connections.values():
+            if t.is_authenticated():
+                self.s = t.open_sftp_client()
+                break
 
     def complete_star_command(self, lead_in, text, state):
         if state == 0:
@@ -211,23 +215,37 @@ class radssh_tab_handler(object):
     def complete_remote_path(self, lead_in, text, state):
         if state == 0:
             del self.completion_choices[:]
-            for t in self.cluster.connections.values():
-                if t.is_authenticated():
-                    break
+            try:
+                self.s.stat('/')
+            except Exception as e:
+                for t in self.cluster.connections.values():
+                    if t.is_authenticated():
+                        self.s = t.open_sftp_client()
+                        break
+                else:
+                    print('No authenticated connections')
+                    raise RuntimeError('Tab Completion unavailable')
+            cdir = self.cluster.user_vars.get('%curr_dir%', '')
+            if not cdir:
+                cdir = './'
             else:
-                print('No authenticated connections')
-                raise RuntimeError('Tab Completion unavailable')
-            s = t.open_sftp_client()
+                try:
+                    self.s.stat(cdir)
+                except IOError as e:
+                    cdir = './'
             parent = os.path.dirname(lead_in)
             partial = os.path.basename(lead_in)
             if not parent:
-                parent = './'
-            for x in s.listdir(parent):
+                parent = cdir
+            else:
+                if not parent.startswith('/'):
+                    parent = cdir + '/' + parent
+            for x in self.s.listdir(parent):
                 if x.startswith(partial):
                     full_path = os.path.join(parent, x)
                     try:
                         # See if target is a directory, and append '/' if it is
-                        s.chdir(full_path)
+                        self.s.chdir(full_path)
                         x += '/'
                         full_path += '/'
                     except Exception as e:

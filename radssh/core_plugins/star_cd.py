@@ -24,11 +24,14 @@ def star_cd(cluster, logdir, cmd, *args):
     global curr_dir
     if not args:
         curr_dir = ''
+        cluster.user_vars['%curr_dir%'] = curr_dir
         return
     if os.path.isabs(args[0]) or args[0].startswith('~'):
         curr_dir = args[0]
+        cluster.user_vars['%curr_dir%'] = curr_dir
         return
     curr_dir = os.path.join(curr_dir, args[0])
+    cluster.user_vars['%curr_dir%'] = curr_dir
 
 star_commands = {'*cd': star_cd}
 

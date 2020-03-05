@@ -50,9 +50,10 @@ shell.console=color
 # set this parameter to the number of lines to retain. Can be very memory
 # intensive.
 stalled_job_buffer=0
+# Report when command entered is modified (by a plugin) prior to executing
+show_altered_commands=off
 
 max_threads=120
-show_altered_commands=off
 # Automatically save log files into date/time-stamped local directory
 logdir=session_%Y%m%d_%H%M%S
 # Log all normal output to given filename in logdir. Set empty to turn off
@@ -67,6 +68,9 @@ historyfile=~/.radssh_history
 
 # Available modes: {stream, ordered, off}
 output_mode=stream
+### If output_mode is ordered then addl quiet flag to not echo 'No Output'
+output_quiet=off
+
 # Can override character encoding (will use sys.stdout.encoding if not specified)
 # character_encoding=UTF-8
 # Avoiding runaway commands with either too much output, or
