@@ -52,8 +52,6 @@ def monochrome(tag, text):
     for line in text.split('\n'):
         yield '[%s] %s\n' % (label, line)
 
-# mck
-
 def hsum(hstr0):
     temp = "0"
     Sum = 0
