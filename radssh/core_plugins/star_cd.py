@@ -8,6 +8,7 @@
 # according to the Revised BSD License, a copy of which should be
 # included with the distribution as file LICENSE.txt
 #
+
 import os
 
 curr_dir = ''
