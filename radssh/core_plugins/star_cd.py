@@ -26,6 +26,7 @@ def star_cd(cluster, logdir, cmd, *args):
         curr_dir = ''
         cluster.user_vars['%curr_dir%'] = curr_dir
         return
+    # TODO: check if curr_dir is valid
     if os.path.isabs(args[0]) or args[0].startswith('~'):
         curr_dir = args[0]
         cluster.user_vars['%curr_dir%'] = curr_dir

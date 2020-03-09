@@ -73,6 +73,7 @@ def myhash(hstr0):
 def colorizer(tag, text):
     '''Basic ANSI colorized output - host hash value map to 7-color palette, stderr bold'''
     label, hilight = tag
+    # prev
     #color = 1 + hash(label) % 7
     color = 1 + myhash(str(label)) % 7
     for line in text.split('\n'):
