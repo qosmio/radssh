@@ -30,6 +30,9 @@ def posix_shell(chan, encoding='UTF-8', tty_init_file=''):
             f = open(tty_init_file, 'r')
             lines = f.readlines()
             for line in lines:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
                 cmd = line + '\r'
                 chan.send(cmd).encode(encoding);
                 f.close()
