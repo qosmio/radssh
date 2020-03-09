@@ -90,7 +90,7 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None):
                     cmd = next(playbackfile)
                     print('%s %s' % (defaults['shell.prompt'], cmd.strip()))
                 except StopIteration:
-                    break
+                    return
             else:
                 try:
                     cmd = raw_input('%s ' % defaults['shell.prompt'])
@@ -191,6 +191,17 @@ class radssh_tab_handler(object):
             readline.parse_and_bind('bind ^I rl_complete')
         else:
             readline.parse_and_bind('tab: complete')
+        for t in self.cluster.connections.values():
+            if t.is_authenticated():
+                self.s = t.open_sftp_client()
+                sess = t.open_session()
+                sess.exec_command("echo $HOME\n")
+                stdout = sess.makefile('rb', -1)
+                sess.recv_exit_status()
+                self.home_dir = stdout.readline().strip()
+                stdout.close()
+                sess.close()
+                break
 
     def complete_star_command(self, lead_in, text, state):
         if state == 0:
@@ -228,23 +239,45 @@ class radssh_tab_handler(object):
     def complete_remote_path(self, lead_in, text, state):
         if state == 0:
             del self.completion_choices[:]
-            for t in self.cluster.connections.values():
-                if t.is_authenticated():
-                    break
-            else:
-                print('No authenticated connections')
-                raise RuntimeError('Tab Completion unavailable')
-            s = t.open_sftp_client()
+            try:
+                self.s.stat('/')
+            except Exception as e:
+                for t in self.cluster.connections.values():
+                    if t.is_authenticated():
+                        self.s = t.open_sftp_client()
+                        sess = t.open_session()
+                        sess.exec_command("echo $HOME\n")
+                        stdout = sess.makefile('rb', -1)
+                        sess.recv_exit_status()
+                        self.home_dir = stdout.readline().strip()
+                        stdout.close()
+                        sess.close()
+                        break
+                else:
+                    print('No authenticated connections')
+                    raise RuntimeError('Tab Completion unavailable')
+            cdir = self.cluster.user_vars.get('%curr_dir%', '~')
+            if not cdir:
+                cdir = '~'
+            if cdir.startswith('~'):
+                cdir = cdir.replace("~", self.home_dir, 1)
+            try:
+                self.s.stat(cdir)
+            except IOError as e:
+                cdir = './'
             parent = os.path.dirname(lead_in)
             partial = os.path.basename(lead_in)
             if not parent:
-                parent = './'
-            for x in s.listdir(parent):
+                parent = cdir
+            else:
+                if not parent.startswith('/'):
+                    parent = cdir + '/' + parent
+            for x in self.s.listdir(parent):
                 if x.startswith(partial):
                     full_path = os.path.join(parent, x)
                     try:
                         # See if target is a directory, and append '/' if it is
-                        s.chdir(full_path)
+                        self.s.chdir(full_path)
                         x += '/'
                         full_path += '/'
                     except Exception as e:
@@ -502,6 +535,14 @@ def radssh_shell_main():
 
     # Add TAB completion for *commands and remote file paths
     tab_completion = radssh_tab_handler(cluster, star)
+
+    # check auto_tty ...
+    auto_tty = defaults.get('auto_tty', 'off')
+    if (auto_tty == 'on' and len(hosts) == 1):
+        star.call(cluster, logdir, '*tty1')
+        cluster.console.join()
+        cluster.close_connections()
+        sys.exit(0)
 
     # With the cluster object, start interactive session
     shell(cluster=cluster, logdir=logdir, defaults=defaults)
