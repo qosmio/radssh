@@ -465,6 +465,7 @@ class Cluster(object):
         self.chunk_size = None
         self.chunk_delay = 0
         self.output_mode = self.defaults['output_mode']
+        # output ordered but more quiet
         self.output_quiet = self.defaults.get('output_quiet', 'off')
         self.sshconfig = paramiko.SSHConfig()
         # Only load SSHConfig if path is set in RadSSH config

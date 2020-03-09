@@ -521,6 +521,7 @@ def radssh_shell_main():
     # Add TAB completion for *commands and remote file paths
     tab_completion = radssh_tab_handler(cluster, star)
 
+    # check auto_tty ...
     auto_tty = defaults.get('auto_tty', 'off')
     if (auto_tty == 'on' and len(hosts) == 1):
         star.call(cluster, logdir, '*tty1')

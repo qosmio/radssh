@@ -68,7 +68,7 @@ historyfile=~/.radssh_history
 
 # Available modes: {stream, ordered, off}
 output_mode=stream
-# If output_mode is ordered then addl quiet flag to not echo 'No Output' is:
+# If output_mode is ordered then addl quiet flag to not echo 'No Output'
 output_quiet=off
 
 # If only one host then go into tty session automatically
