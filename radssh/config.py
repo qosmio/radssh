@@ -68,8 +68,20 @@ historyfile=~/.radssh_history
 
 # Available modes: {stream, ordered, off}
 output_mode=stream
+# If output_mode is ordered then addl quiet flag to not echo 'No Output'
+output_quiet=off
+
+# If only one host then go into tty session automatically
+auto_tty=off
+# Shell commands to execute at start of each tty session,
+# as an example:
+#   export TERM=xterm-256color; tset
+#   alias rm='rm -i'
+tty_init_file=~/.radssh_ttyinit
+
 # Can override character encoding (will use sys.stdout.encoding if not specified)
 # character_encoding=UTF-8
+
 # Avoiding runaway commands with either too much output, or
 # waiting indefinately at a user prompt...
 quota.time=0

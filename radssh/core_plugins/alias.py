@@ -24,13 +24,13 @@ import logging
 
 def gather_history():
     '''Pull history lines as a list'''
+    m = readline.get_current_history_length()
     n = 1
     result = []
-    while True:
+    while n <= m:
         line = readline.get_history_item(n)
-        if not line:
-            break
-        result.append(line)
+        if line and (not line.isspace()):
+            result.append(line)
         n += 1
     return result
 
