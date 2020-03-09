@@ -23,58 +23,24 @@ import fcntl
 import time
 
 
-def posix_shell2(chan, encoding='UTF-8'):
-    try:
-        chan.send(('export TERM=xterm-256color; tset\r').encode(encoding))
-        chan.send(('export sship=$(echo $SSH_CLIENT | awk \'{print $1}\')\r').encode(encoding))
-        chan.send(('alias rm=\'rm -i\'\r').encode(encoding))
-        chan.send(('alias lla=\'ls -lAtr\'\r').encode(encoding))
-        chan.send(('alias vi=\'vim -c ":hi Search cterm=NONE ctermfg=grey ctermbg=darkred"\'\r').encode(encoding))
-        chan.send(('bind \'set enable-bracketed-paste on\'\r').encode(encoding))
-        do_loop = True
-        while do_loop:
-            r, w, e = select.select([chan, sys.stdin], [], [], 0.1)
-            if chan in r:
-                x = chan.recv(4096)
-                if len(x) == 0:
-                    while True:
-                        try:
-                            sys.stdout.write('\r\n*** EOF ***\r\n')
-                            do_loop = False
-                            break
-                        except IOError:
-                            time.sleep(0.02)
-                    sys.stdout.flush()
-                elif len(x) > 0:
-                    while True:
-                        try:
-                            sys.stdout.write(x.decode(encoding))
-                            break
-                        except IOError:
-                            time.sleep(0.02)
-                    sys.stdout.flush()
-            if sys.stdin in r:
-                x = sys.stdin.read()
-                if len(x) >= 0:
-                    chan.send(x.encode(encoding))
-    except Exception as e:
-        print('Exception in TTY session\n%r\n' % e)
-
-
-def posix_shell(chan, encoding='UTF-8'):
+def posix_shell(chan, encoding='UTF-8', tty_init_file=''):
     partial_buf = b''
+    if tty_init_file:
+        try:
+            f = open(tty_init_file, 'r')
+            lines = f.readlines()
+            for line in lines:
+                cmd = line + '\r'
+                chan.send(cmd).encode(encoding);
+                f.close()
+        except Exception as e:
+            pass
     try:
-        chan.send(('export TERM=xterm-256color; tset\r').encode(encoding))
-        chan.send(('export sship=$(echo $SSH_CLIENT | awk \'{print $1}\')\r').encode(encoding))
-        chan.send(('alias rm=\'rm -i\'\r').encode(encoding))
-        chan.send(('alias lla=\'ls -lAtr\'\r').encode(encoding))
-        chan.send(('alias vi=\'vim -c ":hi Search cterm=NONE ctermfg=grey ctermbg=darkred"\'\r').encode(encoding))
-        chan.send(('bind \'set enable-bracketed-paste on\'\r').encode(encoding))
         while True:
             r, w, e = select.select([chan, sys.stdin], [], [])
             if (chan in r):
                 try:
-                    x = chan.recv(128)
+                    x = chan.recv(1024)
                     r1, w1, e1 = select.select([], [sys.stdout], [])
                     if (sys.stdout in w1):
                         if len(x) == 0:
@@ -156,8 +122,10 @@ def radssh_tty(cluster, logdir, cmd, *args):
             if (cmd != '*tty1'):
                 print('Starting TTY session for %s\r' % str(x))
             session.invoke_shell()
-            posix_shell(session, cluster.defaults['character_encoding'])
-            print('TTY session for %s completed\r' % str(x))
+            tty_init_file = cluster.defaults.get('tty_init_file', '')
+            posix_shell(session, cluster.defaults['character_encoding'], tty_init_file)
+            if (cmd != '*tty1'):
+                print('TTY session for %s completed\r' % str(x))
             session.close()
         except Exception as e:
             print('Exception occurred while trying TTY for %s\r' % str(x))
