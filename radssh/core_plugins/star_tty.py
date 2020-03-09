@@ -20,7 +20,6 @@ import termios
 import tty
 import os
 import fcntl
-import time
 
 
 def posix_shell(chan, encoding='UTF-8'):
@@ -77,62 +76,39 @@ def radssh_tty(cluster, logdir, cmd, *args):
     old_fcntl = fcntl.fcntl(sys.stdin, fcntl.F_GETFL)
     fcntl.fcntl(sys.stdin, fcntl.F_SETFL, old_fcntl | os.O_NONBLOCK)
     prompt_delay = 3.0
-    if (cmd == '*tty1'):
-        prompt_delay = 0.0
     for x in args:
         if not cluster.locate(x):
             print('Skipping TTY request for %s (not found)\r' % str(x))
             continue
         try:
-            if (cmd != '*tty1'):
-                print('Starting TTY session for [%s] in %g seconds...\r' % (x, prompt_delay))
-                print(
-                    '(Press \'S\' to skip, \'X\' to abort, any other key to connect immediately)',
-                    end='')
-                sys.stdout.flush()
-                r, w, e = select.select([sys.stdin], [], [], prompt_delay)
-                print('\r\n')
-                if r:
-                    keystroke = sys.stdin.read()
-                    if keystroke in ('s', 'S'):
-                        continue
-                    if keystroke in ('x', 'X'):
-                        break
+            print('Starting TTY session for [%s] in %g seconds...\r' % (x, prompt_delay))
+            print(
+                '(Press \'S\' to skip, \'X\' to abort, any other key to connect immediately)',
+                end='')
+            sys.stdout.flush()
+            r, w, e = select.select([sys.stdin], [], [], prompt_delay)
+            print('\r\n')
+            if r:
+                keystroke = sys.stdin.read()
+                if keystroke in ('s', 'S'):
+                    continue
+                if keystroke in ('x', 'X'):
+                    break
         except Exception as e:
             print(e)
         try:
-            tty_cmds = []
-            tty_init_file1 = cluster.defaults.get('tty_init_file', '')
-            if tty_init_file1:
-                tty_init_file = os.path.expanduser(tty_init_file1);
-                if os.path.exists(tty_init_file):
-                    try:
-                        with open(tty_init_file) as f:
-                            for line in f:
-                                if not line.startswith('#'):
-                                    tty_cmds.append(line.strip())
-                        f.close()
-                    except Exception as e:
-                        pass
             session = None
             t = cluster.connections[cluster.locate(x)]
             if not t.is_authenticated():
                 print('Skipping TTY request for %s (not authenticated)\r' % str(x))
                 continue
             session = t.open_session()
-            # some suggest to not combine stdout/stderr if using get_pty()
-            #session.set_combine_stderr(True)
+            session.set_combine_stderr(True)
             session.get_pty(width=cols, height=lines)
-            if (cmd != '*tty1'):
-                print('Starting TTY session for %s\r' % str(x))
+            print('Starting TTY session for %s\r' % str(x))
             session.invoke_shell()
-            encoding = cluster.defaults.get('character_encoding', 'UTF-8')
-            for cmd in tty_cmds:
-                cmd = cmd + '\r'
-                session.send((cmd).encode(encoding))
-            posix_shell(session, encoding)
-            if (cmd != '*tty1'):
-                print('TTY session for %s completed\r' % str(x))
+            posix_shell(session, cluster.defaults['character_encoding'])
+            print('TTY session for %s completed\r' % str(x))
             session.close()
         except Exception as e:
             print('Exception occurred while trying TTY for %s\r' % str(x))
@@ -142,4 +118,4 @@ def radssh_tty(cluster, logdir, cmd, *args):
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
     fcntl.fcntl(sys.stdin, fcntl.F_SETFL, old_fcntl)
 
-star_commands = {'*tty': radssh_tty, '*tty1': radssh_tty}
+star_commands = {'*tty': radssh_tty}

@@ -13,35 +13,21 @@ import os
 
 curr_dir = ''
 
-# Keep path elements as list
-add_paths = []
-
-def init(**kwargs):
-    # Pull the defined dirs from the config setting
-    add_paths.extend(kwargs['defaults'].get('plugins.setpath.dirs').split(':'))
 
 def star_cd(cluster, logdir, cmd, *args):
     '''global chdir (prepends to all cmds)'''
     global curr_dir
     if not args:
         curr_dir = ''
-        cluster.user_vars['%curr_dir%'] = curr_dir
         return
-    # TODO: check if curr_dir is valid
     if os.path.isabs(args[0]) or args[0].startswith('~'):
         curr_dir = args[0]
-        cluster.user_vars['%curr_dir%'] = curr_dir
         return
     curr_dir = os.path.join(curr_dir, args[0])
-    cluster.user_vars['%curr_dir%'] = curr_dir
 
-star_commands = {'*cd': star_cd}
 
 def command_listener(cmd):
     if (curr_dir and cmd and cmd[0] != '*'):
-        if (add_paths):
-            return 'cd %s ; PATH=${PATH}:%s ; %s' % (curr_dir, ':'.join(add_paths), cmd)
         return 'cd %s ; %s' % (curr_dir, cmd)
-    if (add_paths and cmd and cmd[0] != '*'):
-        return 'PATH=${PATH}:%s; %s' % (':'.join(add_paths), cmd)
 
+star_commands = {'*cd': star_cd}
