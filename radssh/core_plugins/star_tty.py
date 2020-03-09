@@ -23,21 +23,8 @@ import fcntl
 import time
 
 
-def posix_shell(chan, encoding='UTF-8', tty_init_file=''):
+def posix_shell(chan, encoding='UTF-8'):
     partial_buf = b''
-    if tty_init_file:
-        try:
-            f = open(tty_init_file, 'r')
-            lines = f.readlines()
-            for line in lines:
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                cmd = line + '\r'
-                chan.send(cmd).encode(encoding);
-                f.close()
-        except Exception as e:
-            pass
     try:
         while True:
             r, w, e = select.select([chan, sys.stdin], [], [])
@@ -114,6 +101,19 @@ def radssh_tty(cluster, logdir, cmd, *args):
         except Exception as e:
             print(e)
         try:
+            tty_cmds = []
+            tty_init_file1 = cluster.defaults.get('tty_init_file', '')
+            if tty_init_file1:
+                tty_init_file = os.path.expanduser(tty_init_file1);
+                if os.path.exists(tty_init_file):
+                    try:
+                        with open(tty_init_file) as f:
+                            for line in f:
+                                if not line.startswith('#'):
+                                    tty_cmds.append(line.strip())
+                        f.close()
+                    except Exception as e:
+                        pass
             session = None
             t = cluster.connections[cluster.locate(x)]
             if not t.is_authenticated():
@@ -125,8 +125,11 @@ def radssh_tty(cluster, logdir, cmd, *args):
             if (cmd != '*tty1'):
                 print('Starting TTY session for %s\r' % str(x))
             session.invoke_shell()
-            tty_init_file = cluster.defaults.get('tty_init_file', '')
-            posix_shell(session, cluster.defaults['character_encoding'], tty_init_file)
+            encoding = cluster.defaults.get('character_encoding', 'UTF-8')
+            for cmd in tty_cmds:
+                cmd = cmd + '\r'
+                session.send((cmd).encode(encoding))
+            posix_shell(session, encoding)
             if (cmd != '*tty1'):
                 print('TTY session for %s completed\r' % str(x))
             session.close()
