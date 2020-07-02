@@ -28,6 +28,7 @@ import os
 import sys
 import time
 import platform
+import distro
 import threading
 
 import netaddr
