@@ -21,12 +21,13 @@ import tty
 import os
 import fcntl
 import time
+import errno
 
 
 def posix_shell(chan, encoding='UTF-8'):
     partial_buf = b''
-    try:
-        while True:
+    while True:
+        try:
             r, w, e = select.select([chan, sys.stdin], [], [])
             if (chan in r):
                 try:
@@ -47,8 +48,17 @@ def posix_shell(chan, encoding='UTF-8'):
             if sys.stdin in r:
                 x = sys.stdin.read()
                 chan.send(x.encode(encoding))
-    except Exception as e:
-        print('Exception in TTY session\n%r\n' % e)
+        except select.error as ex:
+            if ex.args[0] != errno.EINTR:
+                print('select Exception in TTY session\n')
+                raise
+        except socket.error as ey:
+            if ey.args[0] != errno.EINTR:
+                print('socket Exception in TTY session\n')
+                raise
+        except Exception as e:
+            print('Exception in TTY session\n%r\n' % e)
+            raise
 
 
 def terminal_size():
