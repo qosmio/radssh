@@ -35,8 +35,6 @@ def star_cd(cluster, logdir, cmd, *args):
     curr_dir = os.path.join(curr_dir, args[0])
     cluster.user_vars['%curr_dir%'] = curr_dir
 
-star_commands = {'*cd': star_cd}
-
 def command_listener(cmd):
     if (curr_dir and cmd and cmd[0] != '*'):
         if (add_paths):
@@ -45,3 +43,4 @@ def command_listener(cmd):
     if (add_paths and cmd and cmd[0] != '*'):
         return 'PATH=${PATH}:%s; %s' % (':'.join(add_paths), cmd)
 
+star_commands = {'*cd': star_cd}

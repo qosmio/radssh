@@ -21,12 +21,13 @@ import tty
 import os
 import fcntl
 import time
+import errno
 
 
 def posix_shell(chan, encoding='UTF-8'):
     partial_buf = b''
-    try:
-        while True:
+    while True:
+        try:
             r, w, e = select.select([chan, sys.stdin], [], [])
             if (chan in r):
                 try:
@@ -47,8 +48,17 @@ def posix_shell(chan, encoding='UTF-8'):
             if sys.stdin in r:
                 x = sys.stdin.read()
                 chan.send(x.encode(encoding))
-    except Exception as e:
-        print('Exception in TTY session\n%r\n' % e)
+        except select.error as ex:
+            if ex.args[0] != errno.EINTR:
+                print('select Exception in TTY session\n')
+                raise
+        except socket.error as ey:
+            if ey.args[0] != errno.EINTR:
+                print('socket Exception in TTY session\n')
+                raise
+        except Exception as e:
+            print('Exception in TTY session\n%r\n' % e)
+            raise
 
 
 def terminal_size():
@@ -83,8 +93,8 @@ def radssh_tty(cluster, logdir, cmd, *args):
         if not cluster.locate(x):
             print('Skipping TTY request for %s (not found)\r' % str(x))
             continue
-        try:
-            if (cmd != '*tty1'):
+        if (cmd != '*tty1'):
+            try:
                 print('Starting TTY session for [%s] in %g seconds...\r' % (x, prompt_delay))
                 print(
                     '(Press \'S\' to skip, \'X\' to abort, any other key to connect immediately)',
@@ -98,10 +108,10 @@ def radssh_tty(cluster, logdir, cmd, *args):
                         continue
                     if keystroke in ('x', 'X'):
                         break
-        except Exception as e:
-            print(e)
+            except Exception as e:
+                print(e)
         try:
-            tty_cmds = []
+            tty_init_cmds = []
             tty_init_file1 = cluster.defaults.get('tty_init_file', '')
             if tty_init_file1:
                 tty_init_file = os.path.expanduser(tty_init_file1);
@@ -110,7 +120,7 @@ def radssh_tty(cluster, logdir, cmd, *args):
                         with open(tty_init_file) as f:
                             for line in f:
                                 if not line.startswith('#'):
-                                    tty_cmds.append(line.strip())
+                                    tty_init_cmds.append(line.strip())
                         f.close()
                     except Exception as e:
                         pass
@@ -127,7 +137,8 @@ def radssh_tty(cluster, logdir, cmd, *args):
                 print('Starting TTY session for %s\r' % str(x))
             session.invoke_shell()
             encoding = cluster.defaults.get('character_encoding', 'UTF-8')
-            for cmd in tty_cmds:
+            # tty init cmds ...
+            for cmd in tty_init_cmds:
                 cmd = cmd + '\r'
                 session.send((cmd).encode(encoding))
             posix_shell(session, encoding)
