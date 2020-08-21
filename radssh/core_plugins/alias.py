@@ -40,6 +40,13 @@ aliases = {}
 
 
 def init(**kwargs):
+    # mck - just some basic aliases ...
+    #       TODO: could we read these from the config file ?
+    aliases['rm']='rm -i'
+    aliases['ll']='ls -ltr'
+    aliases['less']='less -R'
+    aliases['grep']='grep --color=auto'
+    return
     '''Use subprocess to get shell to source a likely alias defining file'''
     cmd = None
     if os.path.exists(os.path.expanduser('~/.bash_profile')):
