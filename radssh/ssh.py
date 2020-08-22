@@ -172,7 +172,7 @@ def connection_worker(host, conn, auth, sshconfig={}):
     # to, or an already established socket-like object. If conn is not
     # filled in, use the label as the hostname.
     if not conn:
-        conn = host
+        conn = str(host)
     if isinstance(conn, str):
         hostname = sshconfig.get('hostname', conn)
         port = sshconfig.get('port', '22')

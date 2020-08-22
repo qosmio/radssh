@@ -127,6 +127,10 @@ force_tty=Cisco,force10networks
 force_tty.signon=term length 0
 force_tty.signoff=term length 20
 
+# Configuration option to enable launching directly into *tty
+# mode when the connected cluster consists of a single host. ([on]|off)
+auto_tty=on
+
 # Should RadSSH initially send auth_none request (needed for OpenSSH 4.3 banner)
 try_auth_none=off
 
