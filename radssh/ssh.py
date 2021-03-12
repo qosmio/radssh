@@ -864,6 +864,14 @@ class Cluster(object):
 
     def sftp(self, src, dst=None, attrs=None):
         '''SFTP a file (put) to all nodes'''
+
+        prev_chunk = 0
+        curr_chunk = int(self.chunk_size) if self.chunk_size else 9999
+        if curr_chunk > 10:
+            prev_chunk = curr_chunk
+            self.chunk_size = 10
+            '''self.console.message('Forcing chunk_size to 10 for *sftp ...')'''
+
         for k in self:
             t = self.connections[k]
             if k in self.disabled:
@@ -889,6 +897,11 @@ class Cluster(object):
                 continue
         self.last_result = result
         self.console.status('Ready')
+
+        if prev_chunk > 0:
+            self.chunk_size = int(curr_chunk) if (curr_chunk > 0 and curr_chunk < 9999) else None
+            '''self.console.message('Resetting chunk_size ...')'''
+
         return result
 
     def status(self):

@@ -30,6 +30,7 @@ import pprint
 import readline
 import atexit
 import logging
+import fcntl
 
 from . import ssh
 from . import config
@@ -49,6 +50,10 @@ except ImportError:
 
     star = NullStarCommands()
 
+def lock_file(f):
+    if f.writable(): fcntl.lockf(f, fcntl.LOCK_EX)
+def unlock_file(f):
+    if f.writable(): fcntl.lockf(f, fcntl.LOCK_UN)
 
 # Try using colorama when running on Windows
 if sys.platform.startswith('win'):
@@ -331,11 +336,17 @@ class radssh_tab_handler(object):
 # being backported to Python 2.7, so handle it with more code...
 def safe_write_history_file(filename):
     # To avoid false negative, use stat() to test the file modification times
+    nelems = int(os.environ.get('HISTSIZE', 1000))
+
+    lock_file(filename)
+
     try:
-        readline.write_history_file(filename)
+        readline.append_history(nelems, filename)
+        unlock_file(filename)
     except IOError as e:
         # Ignore this exception if we wrote out the history file recently
         try:
+            unlock_file(filename)
             post = os.stat(filename).st_mtime
             if post > time.time() - 3:
                 logging.debug('Ignoring "%s" writing history file', str(e))
@@ -532,7 +543,9 @@ def radssh_shell_main():
             readline.read_history_file(histfile)
         except IOError:
             pass
-        readline.set_history_length(int(os.environ.get('HISTSIZE', 1000)))
+        nelems = int(os.environ.get('HISTSIZE', 1000))
+        nelems *= 5
+        readline.set_history_length(nelems)
         if sys.version_info.major == 2:
             # Workaround #32 - fix not backported to Python 2.X
             atexit.register(safe_write_history_file, histfile)
