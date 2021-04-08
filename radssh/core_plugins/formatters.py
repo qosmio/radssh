@@ -86,8 +86,11 @@ def ip_colorizer(tag, text):
     # Copied from standard colorizer, but with a custom hash function
     label, hilight = tag
     color = 1 + ip_hash(str(label)) % 7
+    ip = str(label)
     for line in text.split('\n'):
         if hilight:
-            yield '\033[30;4%dm[%s]\033[0;1;3%dm %s\033[0m\n' % (color, label, color, line)
+            yield '\033[30;4%dm[%s]\033[0;1;3%dm %s\033[0m\n' % (color, ip.ljust(15), color, line)
         else:
-            yield '\033[3%dm[%s] %s\033[0m\n' % (color, label, line)
+            yield '\033[3%dm[%s] %s\033[0m\n' % (color, ip.ljust(15), line)
+
+
