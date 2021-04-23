@@ -56,7 +56,7 @@ class KeepAlive(object):
     string "keepalive@openssh.com". All that is needed is that the server
     sends some response, even if it is a failure, to set the Event.
     '''
-    def __init__(self, transport, threshold=5):
+    def __init__(self, transport, threshold=100):
         self.transport = transport
         self.threshold = threshold
         self.transport.completion_event = threading.Event()
@@ -68,7 +68,7 @@ class KeepAlive(object):
         m.add_string('keepalive@openssh.com')
         m.add_boolean(True)
         self.transport._send_user_message(m)
-        self.transport.completion_event.wait(0.1)
+        self.transport.completion_event.wait(0.5)
         if self.transport.completion_event.is_set():
             self.transport.completion_event.clear()
             self.pending_count = 0

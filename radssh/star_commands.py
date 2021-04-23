@@ -283,7 +283,7 @@ def star_quota(cluster, logdir, cmdline, *args):
     if cluster.quota.line_limit:
         print('\tOutput Line Limit: %d lines' % cluster.quota.line_limit)
     else:
-        print('\tOutput Byte Limit: Unlimited')
+        print('\tOutput Line Limit: Unlimited')
 
 
 def star_vars(cluster, logdir, cmdline, *args):

@@ -316,13 +316,13 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
             xcmd = cmd
             s.exec_command(xcmd)
         stdout_eof = stderr_eof = False
-        quiet_increment = 0.4
+        quiet_increment = 0.2
         quiet_time = 0
         while not (stdout_eof and stderr_eof and s.exit_status_ready()):
             # Read from stdout socket
             s.settimeout(quiet_increment)
             try:
-                data = s.recv(16384)
+                data = s.recv(1024)
                 quiet_time = 0
                 if data:
                     stdout.push(data)
@@ -342,7 +342,7 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
                 stdout.push('')
                 quiet_time += quiet_increment
                 try:
-                    if quiet_time > 5.0:
+                    if quiet_time > 30.0:
                         keepalive.ping()
                 except ServerNotResponding:
                     t.close()
@@ -457,7 +457,7 @@ class Cluster(object):
         self.last_result = None
         self.user_vars = {}
         self.quota = Quota(self.defaults)
-        self.chunk_size = None
+        self.chunk_size = 0
         self.chunk_delay = 0
         self.output_mode = self.defaults['output_mode']
         self.ordered_placeholder = self.defaults['ordered_placeholder']
