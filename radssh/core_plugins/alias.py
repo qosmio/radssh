@@ -32,7 +32,10 @@ def star_history(cluster, logdir, cmd, *args):
     '''Print recent RadSSH command line history'''
     hist = gather_history()
     for n, line in enumerate(hist, 1):
-        print('%5d - %s' % (n, line))
+        try:
+            print('%5d - %s' % (n, line))
+        except Exception as e:
+            pass
 
 
 last_command = ''
