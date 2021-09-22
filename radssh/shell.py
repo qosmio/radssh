@@ -32,6 +32,8 @@ import atexit
 import logging
 import fcntl
 
+import paramiko
+
 from . import ssh
 from . import config
 from .console import RadSSHConsole, monochrome
@@ -192,7 +194,7 @@ class radssh_tab_handler(object):
         else:
             readline.parse_and_bind('tab: complete')
         for t in self.cluster.connections.values():
-            if t.is_authenticated():
+            if isinstance(t, paramiko.Transport) and t.is_authenticated():
                 self.s = t.open_sftp_client()
                 sess = t.open_session()
                 sess.exec_command("echo $HOME\n")
@@ -243,7 +245,7 @@ class radssh_tab_handler(object):
                 self.s.stat('/')
             except Exception as e:
                 for t in self.cluster.connections.values():
-                    if t.is_authenticated():
+                    if isinstance(t, paramiko.Transport) and t.is_authenticated():
                         self.s = t.open_sftp_client()
                         sess = t.open_session()
                         sess.exec_command("echo $HOME\n")
