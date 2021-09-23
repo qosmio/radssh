@@ -21,6 +21,7 @@ import fcntl
 import time
 import errno
 
+import signal
 
 settings = {
     'prompt_delay': "5.0",
@@ -41,8 +42,24 @@ def init(**kwargs):
         except Exception:
             pass
 
+def terminal_size():
+    import termios
+    import struct
+    h, w, hp, wp = struct.unpack('HHHH',
+                                 fcntl.ioctl(0, termios.TIOCGWINSZ,
+                                             struct.pack('HHHH', 0, 0, 0, 0)))
+    return w, h
 
 def posix_shell(chan, encoding='UTF-8'):
+
+    def sig_win(sig, frame):
+        if sig == signal.SIGWINCH:
+            tw, th = terminal_size()
+            #print('SIGWINCH recvd:', th, tw)
+            chan.resize_pty(width=tw, height=th)
+
+    signal.signal(signal.SIGWINCH, sig_win)
+
     partial_buf = b''
     while True:
         try:
@@ -77,15 +94,6 @@ def posix_shell(chan, encoding='UTF-8'):
         except Exception as e:
             print('Exception in TTY session\n%r\n' % e)
             raise
-
-
-def terminal_size():
-    import termios
-    import struct
-    h, w, hp, wp = struct.unpack('HHHH',
-                                 fcntl.ioctl(0, termios.TIOCGWINSZ,
-                                             struct.pack('HHHH', 0, 0, 0, 0)))
-    return w, h
 
 
 def radssh_tty(cluster, logdir, cmd, *args):
