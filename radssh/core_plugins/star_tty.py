@@ -66,7 +66,7 @@ def posix_shell(chan, encoding='UTF-8'):
             r, w, e = select.select([chan, sys.stdin], [], [])
             if (chan in r):
                 try:
-                    x = chan.recv(1024)
+                    x = chan.recv(10)
                     r1, w1, e1 = select.select([], [sys.stdout], [])
                     if (sys.stdout in w1):
                         if len(x) == 0:
