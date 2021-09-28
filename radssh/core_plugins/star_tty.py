@@ -54,9 +54,12 @@ def posix_shell(chan, encoding='UTF-8'):
 
     def sig_win(sig, frame):
         if sig == signal.SIGWINCH:
-            tw, th = terminal_size()
-            #print('SIGWINCH recvd:', th, tw)
-            chan.resize_pty(width=tw, height=th)
+            try:
+                tw, th = terminal_size()
+                #print('SIGWINCH recvd:', th, tw)
+                chan.resize_pty(width=tw, height=th)
+            except:
+                pass
 
     signal.signal(signal.SIGWINCH, sig_win)
 
