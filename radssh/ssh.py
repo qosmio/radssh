@@ -58,6 +58,7 @@ sshconfig_loglevels = {
     'DEBUG3': logging.DEBUG
 }
 
+sem = threading.Semaphore(10)
 
 def filter_tty_attrs(line):
     '''Handle the attributes for colors, etc.'''
@@ -395,18 +396,38 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
 
 
 def sftp_thread(host, t, srcfile, dstfile=None, attrs=None):
-    if not attrs:
-        attrs = paramiko.sftp_attr.SFTPAttributes.from_stat(os.stat(srcfile))
-    s = t.open_sftp_client()
-    if not dstfile:
-        dstfile = srcfile
-    s.put(srcfile, dstfile)
-    s.chmod(dstfile, attrs.st_mode % 4096)
+    sem.acquire()
+
     try:
+        t.default_max_packet_size=10000000
+        t.default_window_size=paramiko.common.MAX_WINDOW_SIZE
+        t.packetizer.REKEY_BYTES = pow(2, 40)
+        t.packetizer.REKEY_PACKETS = pow(2, 40)
+
+        #s = t.open_sftp_client()
+        s = paramiko.SFTPClient.from_transport(t)
+
+        s.get_channel().in_window_size = 2097152
+        s.get_channel().out_window_size = 2097152
+        s.get_channel().in_max_packet_size = 2097152
+        s.get_channel().out_max_packet_size = 2097152
+
+        if not dstfile:
+            dstfile = srcfile
+
+        if not attrs:
+            attrs = paramiko.sftp_attr.SFTPAttributes.from_stat(os.stat(srcfile))
+
+        s.put(srcfile, dstfile)
+        s.chmod(dstfile, attrs.st_mode % 4096)
         s.chown(dstfile, attrs.st_uid, attrs.st_gid)
-    except IOError:
+    except:
         pass
-    s.close()
+    finally:
+        if hasattr(s, "close") and callable(s.close):
+            s.close()
+        sem.release()
+
     return CommandResult(command='SFTP %s -> %s' % (srcfile, dstfile),
                          return_code=0, status='*** Complete ***',
                          stdout='Transferred %d bytes' % attrs.st_size, stderr='')
@@ -795,7 +816,7 @@ class Cluster(object):
                     pass
                 except KeyboardInterrupt:
                     self.console.status('<Ctrl-C>')
-                    if time.time() - last_interrupt < 2.0:
+                    if time.time() - last_interrupt < 7.0:
                         user_abort.set()
                         # break
                     else:
@@ -865,6 +886,9 @@ class Cluster(object):
     def sftp(self, src, dst=None, attrs=None):
         '''SFTP a file (put) to all nodes'''
 
+        for ix in range(10):
+            sem.release()
+
         prev_chunk = 0
         curr_chunk = int(self.chunk_size) if self.chunk_size else 9999
         if curr_chunk > 10:
@@ -894,12 +918,15 @@ class Cluster(object):
                 pass
             except KeyboardInterrupt:
                 self.console.message('<Ctrl-C> SFTP Transfer ignored.')
-                continue
+                self.dispatcher.terminate()
+                new_dispatcher = Dispatcher(outQ=queue.Queue(), threadpool_size=self.dispatcher.threadpool_size)
+                self.dispatcher = new_dispatcher
+                raise
         self.last_result = result
         self.console.status('Ready')
 
         if prev_chunk > 0:
-            self.chunk_size = int(curr_chunk) if (curr_chunk > 0 and curr_chunk < 9999) else None
+            self.chunk_size = int(curr_chunk) if (curr_chunk > 0 and curr_chunk < 9999) else 0
             '''self.console.message('Resetting chunk_size ...')'''
 
         return result
