@@ -312,7 +312,18 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
                 s.send('%s\n' % cmd)
                 break
         else:
+            t.default_max_packet_size=10000000
+            t.default_window_size=paramiko.common.MAX_WINDOW_SIZE
+            t.packetizer.REKEY_BYTES = pow(2, 40)
+            t.packetizer.REKEY_PACKETS = pow(2, 40)
+
             s = t.open_session()
+
+            s.in_window_size = 2097152
+            s.out_window_size = 2097152
+            s.in_max_packet_size = 2097152
+            s.out_max_packet_size = 2097152
+
             s.set_name(t.getName())
             xcmd = cmd
             s.exec_command(xcmd)
@@ -533,7 +544,19 @@ class Cluster(object):
                             for id_string in self.defaults.get('force_tty', '').split(','):
                                 if id_string and id_string in transport.remote_version:
                                     self.console.message('%s (%s)' % (host, transport.remote_version), 'FORCE TTY')
+
+                                    transport.default_max_packet_size=10000000
+                                    transport.default_window_size=paramiko.common.MAX_WINDOW_SIZE
+                                    transport.packetizer.REKEY_BYTES = pow(2, 40)
+                                    transport.packetizer.REKEY_PACKETS = pow(2, 40)
+
                                     tty = transport.open_session()
+
+                                    tty.in_window_size = 2097152
+                                    tty.out_window_size = 2097152
+                                    tty.in_max_packet_size = 2097152
+                                    tty.out_max_packet_size = 2097152
+
                                     tty.set_name(transport.remote_version)
                                     tty.get_pty(width=132, height=43)
                                     tty.invoke_shell()

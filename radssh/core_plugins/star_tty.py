@@ -66,11 +66,11 @@ def posix_shell(chan, encoding='UTF-8'):
     partial_buf = b''
     while True:
         try:
-            r, w, e = select.select([chan, sys.stdin], [], [])
+            r, w, e = select.select([chan, sys.stdin], [], [], 100)
             if (chan in r):
                 try:
                     x = chan.recv(10)
-                    r1, w1, e1 = select.select([], [sys.stdout], [])
+                    r1, w1, e1 = select.select([], [sys.stdout], [], 100)
                     if (sys.stdout in w1):
                         if len(x) == 0:
                             sys.stdout.write('\r\n*** EOF ***\r\n')
@@ -86,6 +86,8 @@ def posix_shell(chan, encoding='UTF-8'):
             if sys.stdin in r:
                 x = sys.stdin.read()
                 chan.send(x.encode(encoding))
+        except socket.timeout:
+            pass
         except select.error as ex:
             if ex.args[0] != errno.EINTR:
                 print('select Exception in TTY session\n')
@@ -147,7 +149,19 @@ def radssh_tty(cluster, logdir, cmd, *args):
             if not t.is_authenticated():
                 print('Skipping TTY request for %s (not authenticated)\r' % str(x))
                 continue
+
+            t.default_max_packet_size=10000000
+            t.default_window_size=10000000
+            t.packetizer.REKEY_BYTES = pow(2, 40)
+            t.packetizer.REKEY_PACKETS = pow(2, 40)
+
             session = t.open_session()
+
+            session.in_window_size = 2097152
+            session.out_window_size = 2097152
+            session.in_max_packet_size = 2097152
+            session.out_max_packet_size = 2097152
+
             session.get_pty(width=cols, height=lines)
             if prompt_delay:
                 print('Starting TTY session for %s\r' % str(x))
