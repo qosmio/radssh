@@ -88,6 +88,8 @@ def posix_shell(chan, encoding='UTF-8'):
                 chan.send(x.encode(encoding))
         except socket.timeout:
             pass
+        except UnicodeError:
+            pass
         except select.error as ex:
             if ex.args[0] != errno.EINTR:
                 print('select Exception in TTY session\n')
