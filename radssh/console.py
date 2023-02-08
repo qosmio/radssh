@@ -43,7 +43,7 @@ def user_password(prompt):
 
 def monochrome(tag, text):
     '''Basic Formatter for plain (monochrome) output'''
-    label, hilight = tag
+    label, _ = tag
     for line in text.split('\n'):
         yield '[%s] %s\n' % (label, line)
 
@@ -59,7 +59,7 @@ def colorizer(tag, text):
             yield '\033[3%dm[%s] %s\033[0m\n' % (color, label, line)
 
 
-class RadSSHConsole(object):
+class RadSSHConsole:
     '''
     Combine a Queue object with a daemon thread that pulls message
     output from the queue and pretties it up for on screen display.
@@ -125,6 +125,8 @@ class RadSSHConsole(object):
 
     def console_thread(self):
         '''Background-able thread to pull from outputQ and format and print to screen'''
+        tag = None
+        text = None
         while True:
             try:
                 tag, text = self.q.get()
@@ -144,7 +146,7 @@ class RadSSHConsole(object):
 
 
 if __name__ == '__main__':
-    c = RadSSHConsole()
+    c = RadSSHConsole(queue.Queue(300))
     c.message('Begin Console Output')
     c.status('Title Bar Set')
     for x in range(20):

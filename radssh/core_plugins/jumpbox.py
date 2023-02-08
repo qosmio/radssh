@@ -50,6 +50,7 @@ def do_jumpbox_connections(via, dest):
 
 
 def add_jumpbox(host):
+    t = ""
     if jb.cluster.locate(host):
         return
     print('Connecting to jumpbox:', host)
@@ -83,6 +84,7 @@ def lookup(name):
 def jump_info(cluster, logdir, cmd, *args):
     print(jb)
     print(jb.cluster)
+    print(cluster)
     star.star_info(jb.cluster, logdir, cmd, *args)
 
 

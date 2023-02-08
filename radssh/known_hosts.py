@@ -32,7 +32,7 @@ from .console import user_input
 _loaded_files = {}
 _lock = threading.RLock()
 unconditional_add = False
-
+logger = logging.getLogger("radssh")
 
 def printable_fingerprint(k):
     '''Convert key fingerprint into OpenSSH printable format'''
@@ -53,7 +53,7 @@ def load(filename):
             try:
                 _loaded_files[filename] = KnownHosts(filename)
             except IOError as e:
-                logging.getLogger('radssh.keys').info('Unable to load known_hosts from %s: %s' % (filename, str(e)))
+                logger.info('Unable to load known_hosts from %s: %s' % (filename, str(e)))
                 _loaded_files[filename] = KnownHosts()
                 _loaded_files[filename]._filename = filename
     return _loaded_files[filename]
@@ -101,12 +101,12 @@ def verify_transport_key(t, hostname, port, sshconfig):
             if x.key.get_fingerprint() == hostkey.get_fingerprint():
                 break
             # Key types match, but not fingerprint
-            logging.getLogger('radssh.keys').warning('Host %s failed SSH key validation - conflicting entry [%s:%d]' % (hostname, x.filename, x.lineno))
+            logger.warning('Host %s failed SSH key validation - conflicting entry [%s:%d]' % (hostname, x.filename, x.lineno))
             raise Exception('Host %s failed SSH key validation - conflicting entry [%s:%d]' % (hostname, x.filename, x.lineno))
     else:
         # No match found
         if sshconfig.get('stricthostkeychecking', 'ask') == 'yes':
-            logging.getLogger('radssh.keys').warning('No host key found for %s and StrictHostKeyChecking=yes' % hostname)
+            logger.warning('No host key found for %s and StrictHostKeyChecking=yes' % hostname)
             raise Exception('Missing known_hosts entry for: %s' % hostname)
         add_host_entry = True
     # Check key for IP entry as well?
@@ -118,7 +118,7 @@ def verify_transport_key(t, hostname, port, sshconfig):
             if x.key.get_name() == hostkey.get_name():
                 if x.key.get_fingerprint() == hostkey.get_fingerprint():
                     break
-                logging.getLogger('radssh.keys').warning(
+                logger.warning(
                     'Host %s (IP %s) failed SSH key validation - conflicting entry [%s:%d]' %
                     (hostname, verify_ip, x.filename, x.lineno))
                 raise Exception(
@@ -127,7 +127,7 @@ def verify_transport_key(t, hostname, port, sshconfig):
         else:
             # No match found for IP
             if sshconfig.get('stricthostkeychecking', 'ask') == 'yes':
-                logging.getLogger('radssh.keys').warning('No host key found for IP %s (%s) and StrictHostKeyChecking=yes' % (verify_ip, hostname))
+                logger.warning('No host key found for IP %s (%s) and StrictHostKeyChecking=yes' % (verify_ip, hostname))
                 raise Exception('Missing known_hosts entry for IP: %s (%s)' % (verify_ip, hostname))
             add_ip_entry = True
 
@@ -210,7 +210,7 @@ class KnownHosts (object):
                                (hostname, keytype, keyval))
             if self._filename:
                 self.save()
-        logging.getLogger('radssh.keys').info('Added new known_hosts entry for %s (%s) to %s' % (hostname, printable_fingerprint(key), self._filename))
+        logger.info('Added new known_hosts entry for %s (%s) to %s' % (hostname, printable_fingerprint(key), self._filename))
         return HostKeyEntry([hostname], key, lineno=lineno)
 
     def load(self, filename):
@@ -250,7 +250,7 @@ class KnownHosts (object):
                             else:
                                 self._index[h].append(offset + lineno)
                 except (UnreadableKey, TypeError):
-                    logging.getLogger('radssh.keys').error(
+                    logger.error(
                         'Skipping unloadable key line (%s:%d): %s' % (filename, lineno + 1, line))
                     pass
 
@@ -390,6 +390,8 @@ class HostKeyEntry:
                 key = paramiko.DSSKey(data=base64.b64decode(key))
             elif keytype == 'ecdsa-sha2-nistp256':
                 key = paramiko.ECDSAKey(data=base64.b64decode(key), validate_point=False)
+            elif keytype == 'ssh-ed25519':
+                key = paramiko.Ed25519Key(data=base64.b64decode(key))
             else:
                 raise UnreadableKey('Invalid known_hosts line', line, lineno, filename)
             return cls(names, key, marker, lineno, filename)

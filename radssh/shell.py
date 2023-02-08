@@ -37,10 +37,10 @@ try:
     from . import star_commands as star
     import radssh.plugins
 except ImportError:
-    class NullStarCommands(object):
+    class NullStarCommands:
         '''Use stub if plugins or star_commands can not be loaded'''
         @classmethod
-        def call(*args, **kwargs):
+        def call(cls, *args: ssh.Cluster, **kwargs):
             print('Plugins directory not found - *commands disabled')
         star_help = call
         star_info = call
@@ -173,10 +173,11 @@ class radssh_tab_handler(object):
         self.cluster = cluster
         self.star = star
         try:
-            self.using_libedit = ('libedit' in readline.__doc__)
+            self.using_libedit = ('libedit' in str(readline.__doc__))
         except TypeError:
             # pyreadline (windows) readline.__doc__ is None (not iterable)
             self.using_libedit = False
+        # self.using_libedit = True
         self.completion_choices = []
         readline.set_completer()
         readline.set_completer(self.complete)

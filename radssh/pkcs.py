@@ -121,7 +121,7 @@ class PKCS_OAEP(object):
             # Peek to see if it looks like a pubkey or private key
             if self.keydata.startswith(b'ssh-rsa '):
                 self.cipher_object = PKCS1_OAEP(self)
-            elif b'BEGIN RSA PRIVATE KEY' in self.keydata:
+            elif b'BEGIN RSA PRIVATE KEY' in self.keydata or b'BEGIN OPENSSH PRIVATE KEY' in self.keydata:
                 # Defer loading the key, in case a passphrase is required
                 # Handle that when/if the key is needed to instantiate the cipher
                 self.cipher_object = None

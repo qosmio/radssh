@@ -20,7 +20,7 @@ thresholds.
 import queue
 
 
-class StreamBuffer(object):
+class StreamBuffer:
     '''StreamBuffer Class'''
     def __init__(self, queue=None, tag=None, delimiter=b'\n', blocksize=1024, presplit=False, encoding='utf-8'):
         if tag:

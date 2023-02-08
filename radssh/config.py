@@ -133,6 +133,8 @@ try_auth_none=off
 # Additional settings for plugins (that support settings) can be
 # set in this configuration, using the syntax plugin.PLUGIN_NAME.KEYWORD=value
 plugin.star_tty.prompt_delay=5
+
+auto_tty=off
 '''
 
 
