@@ -248,10 +248,8 @@ def connection_worker(host, conn, auth, sshconfig={}):
     try:
         if check_host_key:
             verify_host = sshconfig.get('hostkeyalias', str(hostname))
-            sys_known_hosts = known_hosts.load(sshconfig.get('globalknownhostsfile', '/etc/ssh/ssh_known_hosts'))
             user_known_hosts = known_hosts.load(sshconfig.get('userknownhostsfile', '~/.ssh/known_hosts'))
-            keys = list(sys_known_hosts.matching_keys(verify_host, int(port)))
-            keys.extend(user_known_hosts.matching_keys(verify_host, int(port)))
+            keys = list(user_known_hosts.matching_keys(verify_host, int(port)))
             if keys:
                 # Only request the key types from known_hosts
                 t._preferred_keys = [x.key.get_name() for x in keys]
@@ -464,22 +462,18 @@ class Cluster(object):
         self.sshconfig = paramiko.SSHConfig()
         # Only load SSHConfig if path is set in RadSSH config
         if defaults.get('ssh_config'):
-            logging.getLogger('radssh').warning('Loading SSH Config file: %s', defaults['ssh_config'])
+            logging.getLogger('radssh').info('Loading SSH Config file: %s', defaults['ssh_config'])
             try:
                 with open(os.path.expanduser(defaults['ssh_config'])) as user_config:
                     self.sshconfig.parse(user_config)
             except IOError as e:
                 logging.getLogger('radssh').warning('Unable to process user ssh_config file: %s', e)
-            if os.path.isdir('/etc/ssh'):
-                system_config = '/etc/ssh/ssh_config'
-            else:
-                # OSX location
-                system_config = '/etc/ssh_config'
-            try:
-                with open(system_config) as sysconfig:
-                    self.sshconfig.parse(sysconfig)
-            except IOError as e:
-                logging.getLogger('radssh').warning('Unable to process system ssh_config file (%s): %s', system_config, e)
+            if os.path.exists(system_config := os.path.expanduser('~/.ssh/config')):
+                try:
+                    with open(system_config) as sysconfig:
+                        self.sshconfig.parse(sysconfig)
+                except IOError as e:
+                    logging.getLogger('radssh').warning('Unable to process system ssh_config file (%s): %s', system_config, e)
 
         for label, conn in hostlist:
             config = self.get_ssh_config(label, conn)

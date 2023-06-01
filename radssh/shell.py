@@ -346,8 +346,7 @@ def radssh_shell_main():
 
     # Load Plugins to aid in host lookups and add *commands dynamically
     loaded_plugins = {}
-    exe_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-    system_plugin_dir = os.path.join(exe_dir, 'plugins')
+    system_plugin_dir = radssh.plugins.__path__[0]
     disable_plugins = defaults['disable_plugins'].split(',')
     plugin_dirs = [x for x in defaults['plugins'].split(';') if x]
     plugin_dirs.append(system_plugin_dir)

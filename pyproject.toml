@@ -1,15 +1,42 @@
-[tool]
 [tool.poetry]
 name = "radssh"
 version = "1.3.0"
-description = "RadSSH Module"
-license = "BSD"
-keywords = ["ssh", "parallel", "paramiko"]
-classifiers = ["Development Status :: 5 - Production/Stable", "Environment :: Console", "Intended Audience :: System Administrators", "Intended Audience :: Developers", "License :: OSI Approved :: BSD License", "Operating System :: POSIX", "Operating System :: Microsoft :: Windows", "Operating System :: MacOS :: MacOS X", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.5", "Programming Language :: Python :: 3.6", "Programming Language :: Python :: 3.7", "Programming Language :: Python :: 3.8", "Topic :: System :: Shells", "Topic :: Utilities"]
-homepage = "https://github.com/radssh/radssh"
 authors = ["Paul Kapp <paul.kapp@risk.lexisnexis.com>"]
+license = "BSD"
+description = "RadSSH Module"
+keywords = ["ssh", "parallel", "paramiko"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: System Administrators",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: POSIX",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: MacOS :: MacOS X",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.5",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: System :: Shells",
+  "Topic :: Utilities",
+]
+urls = { Homepage = "https://github.com/qosmio/radssh" }
+readme = ["README.md"]
+packages = [{ include = "radssh/*.py" }, { include = "radssh/plugins/*" }]
 
 [tool.poetry.dependencies]
-python = "*"
-netaddr = "*"
+python = ">=3.5"
 paramiko = ">=2.7.0"
+netaddr = "*"
+
+[tool.poetry.scripts]
+radssh = "radssh.shell:radssh_shell_main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

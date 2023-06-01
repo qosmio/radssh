@@ -92,10 +92,8 @@ def verify_transport_key(t, hostname, port, sshconfig):
     '''
     add_host_entry = add_ip_entry = False
     hostkey = t.get_remote_server_key()
-    sys_known_hosts = load(sshconfig.get('globalknownhostsfile', '/etc/ssh/ssh_known_hosts'))
     user_known_hosts = load(sshconfig.get('userknownhostsfile', '~/.ssh/known_hosts'))
-    keys = list(sys_known_hosts.matching_keys(hostname, int(port)))
-    keys.extend(user_known_hosts.matching_keys(hostname, int(port)))
+    keys = list(user_known_hosts.matching_keys(hostname, int(port)))
     for x in keys:
         if x.key.get_name() == hostkey.get_name():
             if x.key.get_fingerprint() == hostkey.get_fingerprint():

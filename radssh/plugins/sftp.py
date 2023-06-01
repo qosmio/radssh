@@ -42,7 +42,7 @@ from radssh.plugins import StarCommand
 
 # Add a settings dict so user can override plugin rutime parameters
 settings = {
-    'temp_dir': '/tmp',
+    'temp_dir': '~/.radssh',
     'script_exec': 'bash -c "%s"'
 }
 
@@ -50,6 +50,9 @@ settings = {
 def sftp(cluster, logdir, cmd, *args):
     '''SFTP put a local file on cluster nodes'''
     src = args[0]
+    if src.startswith("~"):
+        src = os.path.expanduser(src)
+    src = os.path.abspath(src)
     if len(args) > 1:
         dst = args[1]
     else:
@@ -64,6 +67,7 @@ def script_file_runner(cluster, logdir, cmd, *args):
         raise RuntimeError('Script file %s not executable' % args[0])
     srcfile = args[0]
     dstfile = os.path.join(settings['temp_dir'], os.path.basename(args[0]))
+    cluster.run_command(settings['script_exec'] % f"mkdir -p {settings['temp_dir']}" )
     sftp(cluster, logdir, cmd, srcfile, dstfile)
     remote_cmd = '%s %s' % (dstfile, ' '.join(args[1:]))
     if settings['script_exec']:

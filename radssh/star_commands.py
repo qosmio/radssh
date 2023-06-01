@@ -339,7 +339,7 @@ def call(cluster, logdir, cmd):
     '''*command caller'''
     try:
         args = cmd.split()
-        fn = commands.get(args[0])
+        fn = commands.get(args[0].lower())
         if fn:
             return fn(cluster, logdir, cmd, *args[1:])
         else:
