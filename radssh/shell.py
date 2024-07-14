@@ -33,6 +33,9 @@ import logging
 from . import ssh
 from . import config
 from .console import RadSSHConsole, monochrome
+import radssh
+import radssh.plugins
+
 try:
     from . import star_commands as star
     import radssh.plugins
@@ -177,7 +180,6 @@ class radssh_tab_handler(object):
         except TypeError:
             # pyreadline (windows) readline.__doc__ is None (not iterable)
             self.using_libedit = False
-        # self.using_libedit = True
         self.completion_choices = []
         readline.set_completer()
         readline.set_completer(self.complete)
@@ -506,7 +508,7 @@ def radssh_shell_main():
             atexit.register(readline.write_history_file, histfile)
 
     # Add TAB completion for *commands and remote file paths
-    tab_completion = radssh_tab_handler(cluster, star)
+    radssh_tab_handler(cluster, star)
 
     # With the cluster object, start interactive session
     shell(cluster=cluster, logdir=logdir, defaults=defaults)

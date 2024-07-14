@@ -49,7 +49,7 @@ def init(**kwargs):
         cmd = ['bash', '-ic',
                'source ~/.bashrc; alias| sed -e \'s/^alias //\'']
     elif os.path.exists(os.path.expanduser('~/.profile')):
-        cmd = ['sh', '-ic', '. ~/.profile; alias']
+        cmd = ['zsh', '-ic', '. ~/.profile; alias']
     if cmd:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         p.wait()
