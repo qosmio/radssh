@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "radssh"
-version = "1.3.0"
+version = "1.4.0"
 authors = ["Paul Kapp <paul.kapp@risk.lexisnexis.com>"]
 license = "BSD"
 description = "RadSSH Module"
