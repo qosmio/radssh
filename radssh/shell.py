@@ -520,7 +520,7 @@ def radssh_shell_main():
             atexit.register(readline.write_history_file, histfile)
 
     # Add TAB completion for *commands and remote file paths
-    tab_completion = radssh_tab_handler(cluster, star)
+    star.tab_completion = radssh_tab_handler(cluster, star)
 
     # With the cluster object, start interactive session
     shell(cluster=cluster, logdir=logdir, defaults=defaults, histfile=histfile)
