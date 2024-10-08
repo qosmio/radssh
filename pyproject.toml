@@ -33,6 +33,7 @@ packages = [{ include = "radssh/*.py" }, { include = "radssh/plugins/*" }]
 python = ">=3.5"
 paramiko = ">=2.7.0"
 netaddr = "*"
+invoke = ">=2.0.0"
 
 [tool.poetry.scripts]
 radssh = "radssh.shell:radssh_shell_main"
