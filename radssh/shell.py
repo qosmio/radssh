@@ -512,7 +512,7 @@ def radssh_shell_main():
             read_history_without_dupes(histfile)
         except IOError:
             pass
-        readline.set_history_length(int(os.environ.get('HISTSIZE', 1000)))
+        readline.set_history_length(int(os.environ.get('HISTSIZE', 100000)))
         if sys.version_info.major == 2:
             # Workaround #32 - fix not backported to Python 2.X
             atexit.register(safe_write_history_file, histfile)
