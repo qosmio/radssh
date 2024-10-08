@@ -17,7 +17,7 @@ Really crude support for shorthand !$ and !! expansion
 import os
 import subprocess
 import readline
-
+import re
 
 def gather_history():
     '''Pull history lines as a list'''
@@ -89,8 +89,20 @@ def command_listener(cmd):
     # Save last_command prior to alias substitution so that alias
     # substitution result is not saved into last_command.
     last_command = new_cmd
-    if words[0] in aliases:
-        new_cmd = new_cmd.replace(words[0], aliases[words[0]], 1)
+
+    # Handle !! aliases
+    if '!!' in new_cmd:
+        # Find and replace !! with the corresponding alias
+        pattern = re.compile(r'!!(\w+)')  # Match !! followed by a word
+        match = pattern.search(new_cmd)
+
+        if match:
+            alias_key = match.group(1)  # Get the alias name after !!
+            if alias_key in aliases:
+                # Replace the !!alias with the alias command
+                alias_value = aliases[alias_key]
+                new_cmd = new_cmd.replace(match.group(0), alias_value, 1)
+
     if new_cmd != cmd:
         return new_cmd
     return None
