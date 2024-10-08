@@ -73,7 +73,7 @@ except OSError:
 command_listeners = []
 
 
-def shell(cluster, logdir=None, playbackfile=None, defaults=None):
+def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None):
     '''Very basic interactive shell'''
     if not defaults:
         defaults = config.load_default_settings()
@@ -129,6 +129,9 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None):
                         cluster = ret
                     continue
                 r = cluster.run_command(cmd)
+                if histfile:
+                    add_to_history(cmd)
+                    readline.write_history_file(histfile)
                 if logdir:
                     cluster.log_result(logdir, encoding=defaults['character_encoding'])
                 # Quick summary report, if jobs failed
@@ -301,12 +304,31 @@ def safe_write_history_file(filename):
         except Exception:
             raise e
 
+def remove_duplicates(filename):
+    try:
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+        unique_lines = list(dict.fromkeys(line.strip() for line in lines))  # Preserve order and remove duplicates
+        with open(filename, 'w') as f:
+            f.write('\n'.join(unique_lines) + '\n')
+    except FileNotFoundError:
+        pass  # If the file doesn't exist, just ignore
+
+def add_to_history(command):
+    if command and command not in readline.get_history_item(readline.get_current_history_length()):
+        readline.add_history(command)
+
+def read_history_without_dupes(filename):
+    remove_duplicates(filename)
+    readline.set_pre_input_hook(lambda: readline.clear_history())
+    readline.read_history_file(filename)
 
 ################################################################################
 
 def radssh_shell_main():
     args = sys.argv[1:]
     defaults = config.load_settings()
+    histfile = None
     # Keep command line options separately, for reuse in sshconfig defaults
     cmdline_options = config.command_line_settings(args, defaults.get('user.settings'))
     defaults.update(cmdline_options)
@@ -487,7 +509,7 @@ def radssh_shell_main():
     if defaults.get('historyfile'):
         histfile = os.path.expanduser(defaults['historyfile'])
         try:
-            readline.read_history_file(histfile)
+            read_history_without_dupes(histfile)
         except IOError:
             pass
         readline.set_history_length(int(os.environ.get('HISTSIZE', 1000)))
@@ -498,10 +520,10 @@ def radssh_shell_main():
             atexit.register(readline.write_history_file, histfile)
 
     # Add TAB completion for *commands and remote file paths
-    radssh_tab_handler(cluster, star)
+    tab_completion = radssh_tab_handler(cluster, star)
 
     # With the cluster object, start interactive session
-    shell(cluster=cluster, logdir=logdir, defaults=defaults)
+    shell(cluster=cluster, logdir=logdir, defaults=defaults, histfile=histfile)
 
 
 if __name__ == '__main__':
