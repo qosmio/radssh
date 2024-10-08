@@ -48,14 +48,22 @@ def init(**kwargs):
     elif os.path.exists(os.path.expanduser('~/.bashrc')):
         cmd = ['bash', '-ic',
                'source ~/.bashrc; alias| sed -e \'s/^alias //\'']
-    elif os.path.exists(os.path.expanduser('~/.profile')):
-        cmd = ['zsh', '-ic', '. ~/.profile; alias']
+    elif os.path.exists(os.path.expanduser('~/.zshenv')):
+        cmd = ['zsh', '-ic', '. ~/.zshenv; alias']
+    elif os.path.exists(os.path.expanduser('~/.zshrc')):
+        cmd = ['zsh', '-ic', '. ~/.zshrc; alias']
     if cmd:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        p.stdin.close()  # close stdin to avoid zsh waiting for input
         p.wait()
         for line in p.stdout:
             name, value = line.decode().split('=', 1)
-            aliases[name] = value.strip()[1:-1].replace("'\\''", "'")
+            value = value.strip()  # Remove leading/trailing spaces
+            if value.startswith("'") and value.endswith("'"):  # Ensure both start and end with single quote
+                value = value[1:-1]
+            value = value.replace("'\\''", "'")  # Handle escaped single quotes
+            value = value.replace("''", "'")  # Handle escaped single quotes
+            aliases[name] = value
 
 
 def command_listener(cmd):
