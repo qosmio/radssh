@@ -42,7 +42,7 @@ from .keepalive import KeepAlive, ServerNotResponding
 # running background threads to terminate prior to command completion
 user_abort = threading.Event()
 
-FILTER_TTY_ATTRS_RE = re.compile(b"\x1b\\[(\d)+(;(\d+))*m")
+FILTER_TTY_ATTRS_RE = re.compile(br"\x1b\[(\d+)(;(\d+))*m")
 
 # Map ssh_config LogLevels to Python logging module levels
 # This may need some future adjustment, as the labels don't quite line up
