@@ -188,7 +188,47 @@ def connection_worker(host, conn, auth, sshconfig={}):
             except Exception as e:
                 logging.getLogger('radssh').error('Invalid ConnectTimeout value "%s" ignored: %s', timeout, e)
                 timeout = None
-            s = socket.create_connection((hostname, int(port)), timeout=timeout)
+
+            # Handle link-local IPv6 addresses with a scope ID (e.g., fe80::...)
+            if "%" in hostname:
+                logging.getLogger("radssh").debug(f"HOSTNAME: {hostname.split('%%')}")
+                hostname, scope_id = hostname.split("%%")
+            else:
+                scope_id = None
+
+            # Resolve address info to handle both IPv4 and IPv6
+            addr_info = socket.getaddrinfo(
+                hostname, port, socket.AF_UNSPEC, socket.SOCK_STREAM
+            )
+            for addr in addr_info:
+                family, socktype, proto, canonname, sockaddr = addr
+
+                # If it's IPv6 and we have a scope ID, append it
+                if family == socket.AF_INET6:
+                    if scope_id:
+                        sockaddr = (f"{sockaddr[0]}%{scope_id}", sockaddr[1])
+                    else:
+                        sockaddr = (sockaddr[0], sockaddr[1])
+                    logging.getLogger("radssh").debug(
+                        f"family {family} {socket.AF_INET6}, socktype {socktype}, proto {proto}, scope_id {scope_id}, sockaddr {sockaddr}"
+                    )
+
+                try:
+                    # Create the connection
+                    s = socket.create_connection(sockaddr, timeout=timeout)
+                    logging.getLogger("radssh").info(
+                        f"Connected to {hostname} on port {port}"
+                    )
+                    break
+                except socket.error as e:
+                    logging.getLogger("radssh").error(f"Failed to connect: {e}")
+                    continue
+            else:
+                logging.getLogger("radssh").error(
+                    f"Could not connect to {hostname} on port {port}"
+                )
+                return None
+
         run_local_command(conn, hostname, port, auth.default_user, sshconfig)
         t = paramiko.Transport(s)
         t.setName(host)
