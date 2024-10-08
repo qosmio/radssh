@@ -197,11 +197,7 @@ class radssh_tab_handler(object):
             for choice in self.star.commands.keys():
                 if choice.startswith(lead_in):
                     self.completion_choices.append(choice + ' ')
-        # Discrepancy with readline/libedit and handling of leading *
-        if self.using_libedit:
-            return self.completion_choices[state]
-        else:
-            return self.completion_choices[state][1:]
+        return self.completion_choices[state][1:]
 
     def complete_executable(self, lead_in, text, state):
         if state == 0:
@@ -246,10 +242,7 @@ class radssh_tab_handler(object):
                         full_path += '/'
                     except Exception:
                         pass
-                    if self.using_libedit:
-                        self.completion_choices.append(full_path)
-                    else:
-                        self.completion_choices.append(x)
+                    self.completion_choices.append(x)
             self.completion_choices.append(None)
         return self.completion_choices[state]
 
@@ -267,10 +260,7 @@ class radssh_tab_handler(object):
                         # See if target is a directory, and append '/' if it is
                         x += '/'
                         full_path += '/'
-                    if self.using_libedit:
-                        self.completion_choices.append(full_path)
-                    else:
-                        self.completion_choices.append(x)
+                    self.completion_choices.append(x)
             self.completion_choices.append(None)
         return self.completion_choices[state]
 
