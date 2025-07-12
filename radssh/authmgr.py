@@ -109,7 +109,7 @@ def _importKey(filename, allow_prompt=True, logger=None):
         retries = 3
         while retries:
             try:
-                passphrase = user_password('Enter passphrase for RSA key [%s]: ' % filename)
+                passphrase = user_password(f'Enter passphrase for RSA key [{filename}]: ')
                 key = paramiko.RSAKey(filename=filename, password=passphrase)
                 if logger:
                     logger.debug('Loaded passphrase protected RSA key from %s', filename)
@@ -117,7 +117,7 @@ def _importKey(filename, allow_prompt=True, logger=None):
             except paramiko.SSHException as e:
                 print(repr(e))
                 retries -= 1
-        return Exception('3 failed passphrase attempts for %s' % filename)
+        return Exception(f'3 failed passphrase attempts for {filename}')
     except paramiko.SSHException as e:
         rsa_exception = e
     if logger:
@@ -136,7 +136,7 @@ def _importKey(filename, allow_prompt=True, logger=None):
         retries = 3
         while retries:
             try:
-                passphrase = user_password('Enter passphrase for ECDSA key [%s]: ' % filename)
+                passphrase = user_password(f'Enter passphrase for ECDSA key [{filename}]: ')
                 key = paramiko.ECDSAKey(filename=filename, password=passphrase)
                 if logger:
                     logger.debug('Loaded passphrase protected ECDSA key from %s', filename)
@@ -144,7 +144,7 @@ def _importKey(filename, allow_prompt=True, logger=None):
             except paramiko.SSHException as e:
                 print(repr(e))
                 retries -= 1
-        return Exception('3 failed passphrase attempts for %s' % filename)
+        return Exception(f'3 failed passphrase attempts for {filename}')
     except paramiko.SSHException as e:
         ecdsa_exception = e
 
@@ -164,7 +164,7 @@ def _importKey(filename, allow_prompt=True, logger=None):
         retries = 3
         while retries:
             try:
-                passphrase = user_password('Enter passphrase for Ed25519 key [%s]: ' % filename)
+                passphrase = user_password(f'Enter passphrase for Ed25519 key [{filename}]: ')
                 key = paramiko.Ed25519Key(filename=filename, password=passphrase)
                 if logger:
                     logger.debug('Loaded passphrase protected Ed25519 key from %s', filename)
@@ -172,7 +172,7 @@ def _importKey(filename, allow_prompt=True, logger=None):
             except paramiko.SSHException as e:
                 print(repr(e))
                 retries -= 1
-        return Exception('3 failed passphrase attempts for %s' % filename)
+        return Exception(f'3 failed passphrase attempts for {filename}')
     except paramiko.SSHException as e:
         ecdsa_exception = e
 
@@ -192,7 +192,7 @@ def _importKey(filename, allow_prompt=True, logger=None):
         retries = 3
         while retries:
             try:
-                passphrase = user_password('Enter passphrase for DSA key [%s]: ' % filename)
+                passphrase = user_password(f'Enter passphrase for DSA key [{filename}]: ')
                 key = paramiko.DSSKey(filename=filename, password=passphrase)
                 if logger:
                     logger.debug('Loaded passphrase protected DSA key from %s', filename)
@@ -200,7 +200,7 @@ def _importKey(filename, allow_prompt=True, logger=None):
             except paramiko.SSHException as e:
                 print(repr(e))
                 retries -= 1
-        return Exception('3 failed passphrase attempts for %s' % filename)
+        return Exception(f'3 failed passphrase attempts for {filename}')
     except paramiko.SSHException as e:
         dsa_exception = e
 
@@ -208,10 +208,10 @@ def _importKey(filename, allow_prompt=True, logger=None):
         logger.debug('Failed to load %s as DSA key\n\t%s', filename, repr(dsa_exception))
     # Give up on using this key
     if logger:
-        logger.error('Unable to load key from [%s] | RSA failure: %r | ECDSA failure: %r | DSA failure: %r' % (filename, rsa_exception, ecdsa_exception, dsa_exception))
+        logger.error(f'Unable to load key from [{filename}] | RSA failure: {rsa_exception!r} | ECDSA failure: {ecdsa_exception!r} | DSA failure: {dsa_exception!r}')
     # Return, rather than raise the exception - Caller just needs something to
     # fill the deferred_keys entry with that's not a paramiko.PKey and not None.
-    return RuntimeError('Unrecognized key: %s' % filename)
+    return RuntimeError(f'Unrecognized key: {filename}')
 
 
 UNUSED_PARAMETER = object()
@@ -224,9 +224,9 @@ class AuthManager(object):
     # exactly the same behavior. Issue a FutureWarning for now if these parameters are used.
     def __init__(self, default_user, auth_file='./.radssh_authfile', include_agent=UNUSED_PARAMETER, include_userkeys=UNUSED_PARAMETER, default_password=None, try_auth_none=True):
         if include_agent != UNUSED_PARAMETER:
-            warnings.warn(FutureWarning('AuthManager will no longer support include_agent starting with 2.0: passed value (%s) ignored' % include_agent), stacklevel=2)
+            warnings.warn(FutureWarning(f'AuthManager will no longer support include_agent starting with 2.0: passed value ({include_agent}) ignored'), stacklevel=2)
         if include_userkeys != UNUSED_PARAMETER:
-            warnings.warn(FutureWarning('AuthManager will no longer support include_userkeys starting with 2.0: passed value (%s) ignored' % include_userkeys), stacklevel=2)
+            warnings.warn(FutureWarning(f'AuthManager will no longer support include_userkeys starting with 2.0: passed value ({include_userkeys}) ignored'), stacklevel=2)
         self.keys = []
         self.passwords = []
         self.default_passwords = {}
@@ -268,14 +268,13 @@ class AuthManager(object):
                             encrypted_password = RSAES_OAEP_Text(data)
                             if encrypted_password.decoder_ring.unsupported:
                                 warnings.warn(RuntimeWarning(
-                                    'Ignoring unusable PKCSOAEP encrypted password from %s (line %d)' %
-                                    (auth_file, line_no)))
+                                    f'Ignoring unusable PKCSOAEP encrypted password from {auth_file} (line {int(line_no)})'))
                                 self.logger.error('PKCS encryption not supported by cryptography module - Ignoring encrypted password from %s (line %d)', auth_file, line_no)
                                 continue
                             self.add_password(encrypted_password, filter)
                             self.logger.info('PKCS encrypted password loaded from %s (line %d)', auth_file, line_no)
                         except Exception as e:
-                            warnings.warn(RuntimeWarning('Failed to load base64 PKCS encrypted password from %s (line %d)\n\t%s' % (auth_file, line_no, repr(e))))
+                            warnings.warn(RuntimeWarning(f'Failed to load base64 PKCS encrypted password from {auth_file} (line {int(line_no)})\n\t{repr(e)}'))
                             self.logger.error('Failed to load base64 PKCS encrypted password from %s (line %d)\n\t%s', auth_file, line_no, repr(e))
                     elif fields[0] == 'keyfile':
                         k = os.path.expanduser(data)
@@ -287,7 +286,7 @@ class AuthManager(object):
                             self.logger.error('Nonexistent private key file [%s] referenced by %s (line %d)', k, auth_file, line_no)
                             # raise ValueError('Unable to load key from [%s]' % k)
                     else:
-                        warnings.warn(RuntimeWarning('Unsupported auth type [%s:%d] %s' % (auth_file, line_no, fields[0])))
+                        warnings.warn(RuntimeWarning(f'Unsupported auth type [{auth_file}:{int(line_no)}] {fields[0]}'))
                         self.logger.error('Unsupported auth type "%s" referenced in %s (line %d)', fields[0], auth_file, line_no)
         except IOError:
             # Quietly fail if auth_file cannot be read
@@ -396,7 +395,7 @@ class AuthManager(object):
                     while not auth_success and retries > 0 and T.is_active():
                         if not password:
                             password = PlainText(user_password(
-                                'Please enter a password for (%s@%s) :' % (auth_user, T.getName())))
+                                f'Please enter a password for ({auth_user}@{T.getName()}) :'))
                             retries -= 1
                         auth_success = self.try_auth(T, [(None, password)], True, auth_user)
                         if auth_success:
@@ -414,15 +413,10 @@ class AuthManager(object):
 
     def interactive_password(self):
         self.default_passwords[None] = PlainText(user_password(
-            'Please enter a password for (%s) :' % self.default_user))
+            f'Please enter a password for ({self.default_user}) :'))
 
     def __str__(self):
-        return '<%s for %s : [%d Keys, Agent %s, %d Passwords]>' \
-            % (self.__class__.__name__,
-               self.default_user,
-               len(self.keys),
-               'Enabled' if self.agent_connection else 'Disabled',
-               len(self.passwords))
+        return f"<{self.__class__.__name__} for {self.default_user} : [{len(self.keys)} Keys, Agent {'Enabled' if self.agent_connection else 'Disabled'}, {len(self.passwords)} Passwords]>"
 
     def try_auth(self, T, candidates, as_password=False, auth_user=None, allow_prompt=True):
         if not auth_user:
@@ -500,14 +494,14 @@ if __name__ == '__main__':
         print('\nLoaded authfile:', authfile)
         print(sample)
         if sample.keys:
-            print('Explicit keys (%d)' % len(sample.keys))
+            print(f'Explicit keys ({len(sample.keys)})')
             for filter, keyfile in sample.keys:
                 if keyfile in sample.deferred_keys:
                     try:
                         key = _importKey(keyfile, allow_prompt=False)
-                        key_info = '%s (%s:%d bit)' % (keyfile, key.get_name(), key.get_bits())
+                        key_info = f'{keyfile} ({key.get_name()}:{int(key.get_bits())} bit)'
                     except Exception:
-                        key_info = '%s (Passphrase-Protected)' % (keyfile)
+                        key_info = f'{keyfile} (Passphrase-Protected)'
                 if not filter:
                     filter = '(ALL)'
                 print('\t', key_info, 'for hosts matching:', filter)
@@ -515,13 +509,13 @@ if __name__ == '__main__':
             print('No explicit keys loaded')
         if sample.agent_connection:
             agent_keys = sample.agent_connection.get_keys()
-            print('SSH Agent available (contains %d keys)' % len(agent_keys))
+            print(f'SSH Agent available (contains {len(agent_keys)} keys)')
             for key in agent_keys:
                 print('\t', key.get_name(), printable_fingerprint(key))
         else:
             print('No SSH Agent connection')
         if sample.passwords:
-            print('Explicit passwords (%d)' % len(sample.passwords))
+            print(f'Explicit passwords ({len(sample.passwords)})')
             for filter, password in sample.passwords:
                 if not filter:
                     filter = '(ALL)'
@@ -529,4 +523,4 @@ if __name__ == '__main__':
         else:
             print('No explicit passwords loaded')
         if sample.default_passwords:
-            print('Authfile includes a default password [%s]' % repr(sample.default_passwords))
+            print(f'Authfile includes a default password [{repr(sample.default_passwords)}]')

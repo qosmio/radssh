@@ -64,12 +64,12 @@ def script_file_runner(cluster, logdir, cmd, *args):
     '''Push a local script file out to nodes and run it with optional arguments'''
     st = os.stat(args[0])
     if not (st.st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)):
-        raise RuntimeError('Script file %s not executable' % args[0])
+        raise RuntimeError(f'Script file {args[0]} not executable')
     srcfile = args[0]
     dstfile = os.path.join(settings['temp_dir'], os.path.basename(args[0]))
     cluster.run_command(settings['script_exec'] % f"mkdir -p {settings['temp_dir']}" )
     sftp(cluster, logdir, cmd, srcfile, dstfile)
-    remote_cmd = '%s %s' % (dstfile, ' '.join(args[1:]))
+    remote_cmd = f"{dstfile} {' '.join(args[1:])}"
     if settings['script_exec']:
         remote_cmd = settings['script_exec'] % remote_cmd
     cluster.run_command(remote_cmd)
@@ -85,12 +85,12 @@ def propagate_file(cluster, logdir, cmd, *args):
     host, path = args[0].split(':', 1)
     source_host = cluster.locate(host)
     if not source_host:
-        print('Host [%s] does not appear to be part of current cluster' % host)
+        print(f'Host [{host}] does not appear to be part of current cluster')
         return
     # Get a temp filename (and fd, but close that immediately, we just want the name)
     fd, tempname = tempfile.mkstemp()
     os.close(fd)
-    print('Fetching master copy of %s from [%s]' % (path, source_host))
+    print(f'Fetching master copy of {path} from [{source_host}]')
     # Here, we don't care if the source node is enabled or not, grab the file content regardless
     t = cluster.connections[source_host]
     s = t.open_sftp_client()

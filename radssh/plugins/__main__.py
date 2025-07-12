@@ -78,12 +78,12 @@ def list_plugins(*args):
                     if lookup:
                         print('        plugin has lookup() function')
                     if cmds:
-                        print('        plugin defines %d *commands' % len(cmds))
+                        print(f'        plugin defines {len(cmds)} *commands')
                         for name, cmd in cmds.items():
-                            print('            %s - %s' % (name, cmd.synopsis))
+                            print(f'            {name} - {cmd.synopsis}')
                 except Exception as e:
                     print('    ', src)
-                    print('         *** Error loading plugin: [%s] ***' % src)
+                    print(f'         *** Error loading plugin: [{src}] ***')
                     print('        ', repr(e))
                 print()
 

@@ -66,7 +66,7 @@ def start_thread(event):
 
 if __name__ == '__main__':
     print('RadSSH Runtime Information Report')
-    print('Package RadSSH %s from (%s)' % (radssh.version, radssh.__file__))
+    print(f'Package RadSSH {radssh.version} from ({radssh.__file__})')
     # Dependent modules - Print version and location
     print('  Using Paramiko ', paramiko.__version__, 'from', paramiko.__file__)
     print('  Using', crypto_module.__name__, crypto_module.__version__, 'from', crypto_module.__file__)
@@ -74,16 +74,15 @@ if __name__ == '__main__':
     print()
 
     # Runtime environment info
-    print('Python %s (%s)' % (platform.python_version(), platform.python_implementation()))
-    print('Running on', platform.system(), platform.release(), '[%s]' % platform.node())
+    print(f'Python {platform.python_version()} ({platform.python_implementation()})')
+    print('Running on', platform.system(), platform.release(), f'[{platform.node()}]')
     if platform.system() == 'Linux':
         # Use distro if available for details, otherwise fallback to platform.platform
         try:
             import distro
-            print('  %s (%s)' % (distro.linux_distribution()[0],
-                  '/'.join([fld for fld in distro.linux_distribution()[1:] if fld])))
+            print(f"  {distro.linux_distribution()[0]} ({'/'.join([fld for fld in distro.linux_distribution()[1:] if fld])})")
         except ImportError:
-            print('  %s' % platform.platform())
+            print(f'  {platform.platform()}')
     print('Encoding for stdout:', sys.stdout.encoding)
 
     # Test runtime limits of open files and threads
@@ -94,13 +93,13 @@ if __name__ == '__main__':
         for x in range(10000):
             lim.append(open_file(os.devnull))
     except Exception as e:
-        print('  System is able to open a maximum of %d concurrent files' % len(lim))
-        print('    Attempting to open file #%d reported (%s)' % (len(lim) + 1, repr(e)))
+        print(f'  System is able to open a maximum of {len(lim)} concurrent files')
+        print(f'    Attempting to open file #{int(len(lim) + 1)} reported ({repr(e)})')
     else:
-        print('  System is able to open at least %d concurrent files' % len(lim))
+        print(f'  System is able to open at least {len(lim)} concurrent files')
     finally:
         t1 = time.time()
-        print('  File check completed in %f seconds\n' % (t1 - t0))
+        print(f'  File check completed in {t1 - t0:f} seconds\n')
         while lim:
             lim.pop().close()
     t0 = time.time()
@@ -109,13 +108,13 @@ if __name__ == '__main__':
         for x in range(10000):
             lim.append(start_thread(kill_threads))
     except Exception as e:
-        print('  System is able to run %d concurrent threads' % len(lim))
-        print('    Attempting to start thread #%d reported (%s)' % (len(lim) + 1, repr(e)))
+        print(f'  System is able to run {len(lim)} concurrent threads')
+        print(f'    Attempting to start thread #{int(len(lim) + 1)} reported ({repr(e)})')
     else:
-        print('  System is able to run %d concurrent threads' % len(lim))
+        print(f'  System is able to run {len(lim)} concurrent threads')
     finally:
         t1 = time.time()
-        print('  Thread check completed in %f seconds\n' % (t1 - t0))
+        print(f'  Thread check completed in {t1 - t0:f} seconds\n')
         kill_threads.set()
         while lim:
             lim.pop().join()

@@ -36,9 +36,9 @@ def ansi256(tag, text):
     color = palette[hash(label) % len(palette)]
     for line in text.split('\n'):
         if hilight:
-            yield '\033[1;38;5;%dm[%s] %s\033[0m\n' % (color, label, line)
+            yield f'\x1b[1;38;5;{int(color)}m[{label}] {line}\x1b[0m\n'
         else:
-            yield '\033[38;5;%dm[%s] %s\033[0m\n' % (color, label, line)
+            yield f'\x1b[38;5;{int(color)}m[{label}] {line}\x1b[0m\n'
 
 
 def ansi256_rj(tag, text):
@@ -50,9 +50,9 @@ def ansi256_rj(tag, text):
     for line in text.split('\n'):
         wide_line = line.ljust(width - len(label) - 2, ' ')
         if hilight:
-            yield '\033[1;38;5;%dm%s[%s]\033[0m\n' % (color, wide_line, label)
+            yield f'\x1b[1;38;5;{int(color)}m{wide_line}[{label}]\x1b[0m\n'
         else:
-            yield '\033[38;5;%dm%s[%s]\033[0m\n' % (color, wide_line, label)
+            yield f'\x1b[38;5;{int(color)}m{wide_line}[{label}]\x1b[0m\n'
 
 
 def ip_hash(hstr0):
@@ -71,6 +71,6 @@ def ip_colorizer(tag, text):
     color = 1 + ip_hash(str(label)) % 7
     for line in text.split('\n'):
         if hilight:
-            yield '\033[30;4%dm[%s]\033[0;1;3%dm %s\033[0m\n' % (color, label, color, line)
+            yield f'\x1b[30;4{int(color)}m[{label}]\x1b[0;1;3{int(color)}m {line}\x1b[0m\n'
         else:
-            yield '\033[3%dm[%s] %s\033[0m\n' % (color, label, line)
+            yield f'\x1b[3{int(color)}m[{label}] {line}\x1b[0m\n'

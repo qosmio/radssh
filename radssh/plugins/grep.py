@@ -22,11 +22,11 @@ def star_grep(cluster, logdir, cmdline, *args):
             res = job.result
             for line_number, line in enumerate(res.stdout.split(b'\n'), 1):
                 if pattern in line:
-                    print('%s [%d]: %s' % (host, line_number, line.rstrip().decode(cluster.defaults['character_encoding'], 'replace')))
+                    print(f"{host} [{int(line_number)}]: {line.rstrip().decode(cluster.defaults['character_encoding'], 'replace')}")
             # Do a second pass through stderr, so matching lines can be tagged
             for line_number, line in enumerate(res.stderr.split(b'\n'), 1):
                 if pattern in line:
-                    print('%s [%d/stderr]: %s' % (host, line_number, line.rstrip().decode(cluster.defaults['character_encoding'], 'replace')))
+                    print(f"{host} [{int(line_number)}/stderr]: {line.rstrip().decode(cluster.defaults['character_encoding'], 'replace')}")
 
 
 def star_match(cluster, logdir, cmdline, *args):
@@ -70,7 +70,7 @@ def star_error(cluster, logdir, cmdline, *args):
         except (TypeError, KeyError):
             pass
     if enable_hosts:
-        print('Enabling:', enable_hosts, '( %d hosts)' % len(enable_hosts))
+        print('Enabling:', enable_hosts, f'( {len(enable_hosts)} hosts)')
         cluster.enable(enable_hosts)
     else:
         print('No hosts had matching error codes. No change to *enable was made')

@@ -48,7 +48,7 @@ def star_help(cluster=None, logdir=None, cmdline=None, *args):
     if args:
         for cmd in args:
             if not cmd[0] == '*':
-                cmd = '*' + cmd
+                cmd = f"*{cmd}"
             if cmd in commands:
                 print('Help for', cmd)
                 print(commands[cmd].help_text)
@@ -58,12 +58,12 @@ def star_help(cluster=None, logdir=None, cmdline=None, *args):
     for cmd in sorted(commands.keys()):
         func = commands[cmd]
         if not isinstance(func, StarCommand):
-            print('%s (old-style) - %s' % (cmd, func.__doc__))
+            print(f'{cmd} (old-style) - {func.__doc__}')
             continue
         if func.version:
-            print('%s (%s) - %s' % (cmd, func.version, func.synopsis))
+            print(f'{cmd} ({func.version}) - {func.synopsis}')
         else:
-            print('%s - %s' % (cmd, func.synopsis))
+            print(f'{cmd} - {func.synopsis}')
 
 
 def star_enable(cluster, logdir, cmdline, *args):
@@ -78,17 +78,16 @@ def star_info(cluster, logdir, cmdline, *args):
     '''Display detailed info for current cluster (connections, etc)'''
     print('*** Cluster Status ***')
     for host, status in cluster.status():
-        print('%14s : %s' % (str(host), status))
+        print(f'{str(host):14} : {status}')
     if cluster.disabled:
         print('-' * 40)
         print('Disabled Nodes:')
         print(','.join([str(x) for x in cluster.disabled]))
     star_quota(cluster, logdir, '')
     if cluster.output_mode == 'ordered':
-        print('Cluster output mode: ordered {} placeholders'.format(
-            'with' if cluster.ordered_placeholder == 'on' else 'without'))
+        print(f"Cluster output mode: ordered {'with' if cluster.ordered_placeholder == 'on' else 'without'} placeholders")
     else:
-        print('Cluster output mode: %s' % cluster.output_mode)
+        print(f'Cluster output mode: {cluster.output_mode}')
 
 
 def star_status(cluster, logdir, cmdline, *args):
@@ -105,16 +104,16 @@ def star_status(cluster, logdir, cmdline, *args):
             res = job.result
             running_time = job.end_time - job.start_time
             if isinstance(res, CommandResult):
-                print('%s: %s - Return Code [%s] took %0.4g seconds' % (x, res.status, res.return_code, running_time))
+                print(f'{x}: {res.status} - Return Code [{res.return_code}] took {running_time:0.4g} seconds')
             else:
-                print('%s: *** Error *** [%s] took %0.4g seconds' % (x, repr(res), running_time))
+                print(f'{x}: *** Error *** [{repr(res)}] took {running_time:0.4g} seconds')
         else:
             missing_results.append(x)
     if missing_results:
         if len(missing_results) < 10:
             print('Missing results from:', ', '.join(missing_results))
         else:
-            print('Missing results from %d hosts' % len(missing_results))
+            print(f'Missing results from {len(missing_results)} hosts')
 
 
 def star_result(cluster, logdir, cmdline, *args):
@@ -139,7 +138,7 @@ def star_result(cluster, logdir, cmdline, *args):
             running_time = job.end_time - job.start_time
             if isinstance(res, CommandResult):
                 if result_file:
-                    result_file.write(('<<< %s: "%s" %s - Return Code [%s] took %0.4g seconds >>>\n' % (x, res.command, res.status, res.return_code, running_time)).encode())
+                    result_file.write(f'<<< {x}: "{res.command}" {res.status} - Return Code [{res.return_code}] took {running_time:0.4g} seconds >>>\n'.encode())
                 if res.stdout:
                     cluster.console.q.put(((x, False), res.stdout.decode(cluster.defaults['character_encoding'], 'replace')))
                     if result_file:
@@ -151,13 +150,13 @@ def star_result(cluster, logdir, cmdline, *args):
             else:
                 cluster.console.q.put(((x, True), repr(res)))
                 if result_file:
-                    result_file.write(('<<< %s: Failed [%s] >>>\n' % (x, repr(res))).encode())
+                    result_file.write(f'<<< {x}: Failed [{repr(res)}] >>>\n'.encode())
             cluster.console.join()
             if result_file:
                 result_file.write(b'\n\n')
     if result_file:
         result_file.close()
-        cluster.console.q.put((('*result', False), 'Output saved to file "%s"' % outfile.strip()))
+        cluster.console.q.put((('*result', False), f'Output saved to file "{outfile.strip()}"'))
 
 
 def star_get(cluster, logdir, cmdline, *args):
@@ -166,12 +165,12 @@ def star_get(cluster, logdir, cmdline, *args):
     save_mode = cluster.output_mode
     cluster.output_mode = 'off'
     dest = os.path.join(logdir, 'files')
-    print('Collecting files into %s' % os.path.abspath(dest))
+    print(f'Collecting files into {os.path.abspath(dest)}')
 
     for filename in args:
-        print('Getting %s...' % filename)
+        print(f'Getting {filename}...')
         namepart = os.path.split(filename)[1]
-        res = cluster.run_command('cat %s' % filename)
+        res = cluster.run_command(f'cat {filename}')
         for host, job in res.items():
             result = job.result
             if job.completed and result.return_code == 0:
@@ -204,7 +203,7 @@ def forwarding(channel, origin, server):
     try:
         s = socket.create_connection(forwarding_dest)
         bk = threading.Thread(target=flow, args=(s, channel))
-        bk.setName('RemoteTunnel_%s' % channel.get_name())
+        bk.setName(f'RemoteTunnel_{channel.get_name()}')
         bk.start()
     except Exception as e:
         print('Remote forward failed:', repr(e))
@@ -248,7 +247,7 @@ def star_forward(cluster, logdir, cmdline, *args):
                 if listener:
                     cluster.reverse_port[host] = listener
                 else:
-                    print('Remote host %s denied port-forward request' % host)
+                    print(f'Remote host {host} denied port-forward request')
         except Exception as e:
             print(e)
 
@@ -257,9 +256,9 @@ def star_output_mode(cluster, logdir, cmdline, *args):
     '''Select output mode: [stream|ordered|off]'''
     modes = ('stream', 'ordered', 'off')
     if args[0] not in modes:
-        raise ValueError('Output mode must be one of: %s' % repr(modes))
+        raise ValueError(f'Output mode must be one of: {repr(modes)}')
     cluster.output_mode = args[0]
-    print('Output mode set to %s' % cluster.output_mode)
+    print(f'Output mode set to {cluster.output_mode}')
 
 
 def star_quota(cluster, logdir, cmdline, *args):
@@ -273,15 +272,15 @@ def star_quota(cluster, logdir, cmdline, *args):
             pass
     print('Current Quota Settings:')
     if cluster.quota.time_limit:
-        print('\tIdle (not Total) Time: %g seconds' % float(cluster.quota.time_limit))
+        print(f'\tIdle (not Total) Time: {float(cluster.quota.time_limit):g} seconds')
     else:
         print('\tIdle (not Total) Time: Unlimited')
     if cluster.quota.byte_limit:
-        print('\tOutput Byte Limit: %d bytes' % cluster.quota.byte_limit)
+        print(f'\tOutput Byte Limit: {int(cluster.quota.byte_limit)} bytes')
     else:
         print('\tOutput Byte Limit: Unlimited')
     if cluster.quota.line_limit:
-        print('\tOutput Line Limit: %d lines' % cluster.quota.line_limit)
+        print(f'\tOutput Line Limit: {int(cluster.quota.line_limit)} lines')
     else:
         print('\tOutput Byte Limit: Unlimited')
 
@@ -296,10 +295,10 @@ def star_vars(cluster, logdir, cmdline, *args):
             print('User variables must start and end with "%"')
             return
         if args[0] in cluster.user_vars:
-            print('%s is currently set to [%s]' % (args[0], cluster.user_vars[args[0]]))
+            print(f'{args[0]} is currently set to [{cluster.user_vars[args[0]]}]')
         else:
-            print('%s is currently not set' % args[0])
-        cluster.user_vars[args[0]] = input('Enter new setting for "%s" : ' % args[0])
+            print(f'{args[0]} is currently not set')
+        cluster.user_vars[args[0]] = input(f'Enter new setting for "{args[0]}" : ')
 
 
 def star_chunk(cluster, logdir, cmdline, *args):
@@ -308,7 +307,7 @@ def star_chunk(cluster, logdir, cmdline, *args):
         cluster.chunk_size = int(args[0])
         if len(args) > 1:
             cluster.chunk_delay = float(args[1])
-    print('Cluster chunk-factor is %s with a temporal warp of %s' % (cluster.chunk_size, cluster.chunk_delay))
+    print(f'Cluster chunk-factor is {cluster.chunk_size} with a temporal warp of {cluster.chunk_delay}')
 
 
 def star_exit(cluster, logdir, cmdline, *args):

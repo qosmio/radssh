@@ -43,9 +43,9 @@ def do_jumpbox_connections(via, dest):
     for y in dest:
         try:
             s = jump.open_channel('direct-tcpip', (y, 22), ('', 0))
-            yield (('--'.join([via, y]), y, s))
+            yield ((f"{via}--{y}", y, s))
         except Exception as e:
-            print('Unable to connect to %s via jumpbox %s' % (y, via))
+            print(f'Unable to connect to {y} via jumpbox {via}')
             print(repr(e))
 
 
@@ -59,9 +59,9 @@ def add_jumpbox(host):
         retries = 3
         while not t.is_authenticated() and retries > 0:
             # Try interactive password authentication
-            print('Failed to authenticate to Jumpbox (%s)' % host)
-            jb_user = input('Enter username for [%s]: ' % host)
-            jb_passwd = getpass.getpass('Enter password for %s@%s: ' % (jb_user, host))
+            print(f'Failed to authenticate to Jumpbox ({host})')
+            jb_user = input(f'Enter username for [{host}]: ')
+            jb_passwd = getpass.getpass(f'Enter password for {jb_user}@{host}: ')
             reauth = AuthManager(jb_user, auth_file=None, include_agent=False,
                                  include_userkeys=False, default_password=jb_passwd)
             t = ssh.connection_worker(host, None, reauth)

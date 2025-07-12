@@ -45,7 +45,7 @@ def monochrome(tag, text):
     '''Basic Formatter for plain (monochrome) output'''
     label, _ = tag
     for line in text.split('\n'):
-        yield '[%s] %s\n' % (label, line)
+        yield f'[{label}] {line}\n'
 
 
 def colorizer(tag, text):
@@ -54,9 +54,9 @@ def colorizer(tag, text):
     color = 1 + hash(label) % 7
     for line in text.split('\n'):
         if hilight:
-            yield '\033[30;4%dm[%s]\033[0;1;3%dm %s\033[0m\n' % (color, label, color, line)
+            yield f'\x1b[30;4{int(color)}m[{label}]\x1b[0;1;3{int(color)}m {line}\x1b[0m\n'
         else:
-            yield '\033[3%dm[%s] %s\033[0m\n' % (color, label, line)
+            yield f'\x1b[3{int(color)}m[{label}] {line}\x1b[0m\n'
 
 
 class RadSSHConsole:
@@ -96,7 +96,7 @@ class RadSSHConsole:
         '''Set console (titlebar) status message'''
         if not self.quietmode:
             # Jam into window title bar
-            print("\x1b]2;%s\x07" % message, end='')
+            print(f"\x1b]2;{message}\x07", end='')
             sys.stdout.flush()
 
     def join(self, clear_history=False):
@@ -121,7 +121,7 @@ class RadSSHConsole:
             return
         self.join()
         for line in self.recent_history.get(str(label), []):
-            print('STALLED: ' + line, end='')
+            print(f"STALLED: {line}", end='')
 
     def console_thread(self):
         '''Background-able thread to pull from outputQ and format and print to screen'''
@@ -139,8 +139,8 @@ class RadSSHConsole:
                                 self.recent_history[str(tag[0])].append(line)
                         sys.stdout.flush()
             except Exception as e:
-                print('Console Thread Exception: %s\n' % str(e))
-                print('(%s): %s\n' % (tag, text))
+                print(f'Console Thread Exception: {str(e)}\n')
+                print(f'({tag}): {text}\n')
             finally:
                 self.q.task_done()
 

@@ -38,9 +38,9 @@ def command_listener(cmd):
         return
     new_cmd = cmd
     if settings['paths']:
-        new_cmd = "PATH=$PATH:{}; {}".format(settings['paths'], new_cmd)
+        new_cmd = f"PATH=$PATH:{settings['paths']}; {new_cmd}"
     if settings['curr_dir'] != '~':
-        new_cmd = "cd {}; {}".format(settings['curr_dir'], new_cmd)
+        new_cmd = f"cd {settings['curr_dir']}; {new_cmd}"
     if new_cmd != cmd:
         return new_cmd
 

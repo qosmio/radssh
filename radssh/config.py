@@ -150,9 +150,9 @@ def load_settings_file(f):
             settings[setting[0].strip()] = setting[1].strip()
         else:
             if hasattr(f, 'name'):
-                warnings.warn_explicit('Invalid line in settings file [%s]' % line, RuntimeWarning, f.name, line_number)
+                warnings.warn_explicit(f'Invalid line in settings file [{line}]', RuntimeWarning, f.name, line_number)
             else:
-                warnings.warn(RuntimeWarning('Invalid line in default settings (Line %d) "%s"' % (line_number, line)))
+                warnings.warn(RuntimeWarning(f'Invalid line in default settings (Line {int(line_number)}) "{line}"'))
     return settings
 
 
@@ -160,7 +160,7 @@ def obsoleted_check(d, filename=None):
     '''Check settings dict against the obsoleted options'''
     for k in obsoleted:
         if k in d:
-            warnings.warn('OBSOLETE: [%s] found in %s is ignored.\n\t%s' % (k, filename, obsoleted[k]))
+            warnings.warn(f'OBSOLETE: [{k}] found in {filename} is ignored.\n\t{obsoleted[k]}')
             d.pop(k)
 
 
@@ -195,9 +195,9 @@ def command_line_settings(cmdline_args=[], permitted=True):
                     obsoleted_check(commandline_setting, 'command line argument')
                     settings.update(commandline_setting)
                 else:
-                    warnings.warn(RuntimeWarning('Command line option: %s (ignored) - User settings disabled by administrator' % (arg)))
+                    warnings.warn(RuntimeWarning(f'Command line option: {arg} (ignored) - User settings disabled by administrator'))
             except ValueError:
-                warnings.warn(RuntimeWarning('Invalid command line option: %s (ignored)' % (arg)))
+                warnings.warn(RuntimeWarning(f'Invalid command line option: {arg} (ignored)'))
             cmdline_args.remove(arg)
     return settings
 
@@ -232,11 +232,11 @@ def main():
     '''Print the RadSSH default settings as reference'''
     for x in default_config.split('\n'):
         if x.startswith('#'):
-            print('##%s' % str(x))
+            print(f'##{str(x)}')
         elif not x.strip():
             print()
         else:
-            print('# %s' % str(x))
+            print(f'# {str(x)}')
 
 
 if __name__ == '__main__':

@@ -35,7 +35,7 @@ def push_key(cluster, logdir, cmd, *args):
 
     # Use grep to determine if the key is already in place
     # Only echo (with append) to file if it is not present
-    cluster.run_command('grep -q "^%s %s" .ssh/authorized_keys || echo "%s %s %s@%s" >> .ssh/authorized_keys' % (k.get_name(), k.get_base64(), k.get_name(), k.get_base64(), os.getlogin(), socket.gethostname()))
+    cluster.run_command(f'grep -q "^{k.get_name()} {k.get_base64()}" .ssh/authorized_keys || echo "{k.get_name()} {k.get_base64()} {os.getlogin()}@{socket.gethostname()}" >> .ssh/authorized_keys')
 
 
 star_commands = {'*pushkey': push_key}

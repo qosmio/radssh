@@ -149,7 +149,7 @@ def load_plugin(src):
     plugin_dir = os.path.dirname(os.path.abspath(os.path.expanduser(src)))
     src = os.path.basename(src)
     if not src.endswith('.py'):
-        raise RuntimeError('RadSSH Plugins must be .py files [%s]' % src)
+        raise RuntimeError(f'RadSSH Plugins must be .py files [{src}]')
     module = src[:-3]
     spec = importlib.util.spec_from_file_location(module, os.path.join(plugin_dir, src))
     module_obj = importlib.util.module_from_spec(spec)
@@ -173,7 +173,7 @@ def discover_plugin(src):
     try:
         plugin = load_plugin(src)
     except Exception as e:
-        warnings.warn(RuntimeWarning('Could not load plugin [%s]' % os.path.basename(src), repr(e)))
+        warnings.warn(RuntimeWarning(f'Could not load plugin [{os.path.basename(src)}]', repr(e)))
         return (None, None, {})
     if hasattr(plugin, 'lookup'):
         lookup = plugin.lookup

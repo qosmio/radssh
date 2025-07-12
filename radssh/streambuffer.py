@@ -26,7 +26,7 @@ class StreamBuffer:
         if tag:
             self.tag = tag
         else:
-            self.tag = '%d' % id(self)
+            self.tag = f'{int(id(self))}'
         self.queue = queue
         self.delimiter = delimiter
         self.blocksize = blocksize
@@ -98,7 +98,7 @@ class StreamBuffer:
 
     def rewind(self, position=0):
         if position < 0 or position > len(self.buffer):
-            raise ValueError('Invalid rewind position %d: only range [0:%d] exists' % (position, len(self.buffer)))
+            raise ValueError(f'Invalid rewind position {int(position)}: only range [0:{len(self.buffer)}] exists')
         self.pull_marker = position
 
     def close(self):
@@ -125,7 +125,7 @@ class StreamBuffer:
         return len(self.buffer)
 
     def __str__(self):
-        return '<%s-%s>' % (self.__class__.__name__, self.tag)
+        return f'<{self.__class__.__name__}-{self.tag}>'
 
 
 if __name__ == '__main__':

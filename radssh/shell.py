@@ -82,12 +82,12 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None)
             if playbackfile:
                 try:
                     cmd = next(playbackfile)
-                    print('%s %s' % (defaults['shell.prompt'], cmd.strip()))
+                    print(f"{defaults['shell.prompt']} {cmd.strip()}")
                 except StopIteration:
                     return
             else:
                 try:
-                    cmd = input('%s ' % defaults['shell.prompt'])
+                    cmd = input(f"{defaults['shell.prompt']} ")
                 except KeyboardInterrupt:
                     print('\n<Ctrl-C> during input\nUse EOF (<Ctrl-D>) or *exit to exit shell\n')
                     continue
@@ -96,11 +96,11 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None)
                     feed_result = feed(cmd)
                     if feed_result:
                         if defaults['show_altered_commands'] == 'on':
-                            cluster.console.message('Command modified from "%s" to "%s"' % (cmd, feed_result))
+                            cluster.console.message(f'Command modified from "{cmd}" to "{feed_result}"')
                         cmd = str(feed_result)
                 if logdir:
                     with open(os.path.join(logdir, 'session.commands'), 'a') as f:
-                        f.write('%s\n' % cmd)
+                        f.write(f'{cmd}\n')
             args = cmd.split()
             if len(args) > 0:
                 if os.path.basename(args[0]) == 'sudo' and len(args) > 1:
@@ -108,10 +108,10 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None)
                 else:
                     initial_command = os.path.basename(args[0])
                 if initial_command in defaults['commands.forbidden'].split(','):
-                    print('You really don\'t want to run %s without a TTY, do you?' % initial_command)
+                    print(f'You really don\'t want to run {initial_command} without a TTY, do you?')
                     continue
                 if initial_command in defaults['commands.restricted'].split(','):
-                    print('STOP! "%s" is listed as a restricted command (Potentially dangerous)' % initial_command)
+                    print(f'STOP! "{initial_command}" is listed as a restricted command (Potentially dangerous)')
                     print('and requires explicit confirmation before running.')
                     print('Please double check all parameters, just to be sure...')
                     print('   >>>', cmd)
@@ -125,7 +125,7 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None)
                     ret = star.call(cluster, logdir, cmd)
                     cluster.console.join()
                     if isinstance(ret, ssh.Cluster):
-                        cluster.console.message('Switched cluster from %r to %r' % (cluster, ret))
+                        cluster.console.message(f'Switched cluster from {cluster!r} to {ret!r}')
                         cluster = ret
                     continue
                 r = cluster.run_command(cmd)
@@ -152,11 +152,11 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None)
                     print('\nSummary of return codes:')
                     for k, v in [(0, completions)] + list(failures.items()):
                         if len(v) > 5:
-                            print(k, '\t- (%d hosts)' % len(v))
+                            print(k, f'\t- ({len(v)} hosts)')
                         else:
                             print(k, '\t-', sorted(v))
                 if completions:
-                    print('Average completion time for %d hosts: %fs' % (len(completions), (completion_time / len(completions))))
+                    print(f'Average completion time for {len(completions)} hosts: {completion_time / len(completions):f}s')
         except KeyboardInterrupt:
             print('Ctrl-C during command preparation - command aborted.')
         except EOFError as e:
@@ -199,7 +199,7 @@ class radssh_tab_handler(object):
             del self.completion_choices[:]
             for choice in self.star.commands.keys():
                 if choice.startswith(lead_in):
-                    self.completion_choices.append(choice + ' ')
+                    self.completion_choices.append(f"{choice} ")
         return self.completion_choices[state][1:]
 
     def complete_executable(self, lead_in, text, state):
@@ -213,7 +213,7 @@ class radssh_tab_handler(object):
                                 continue
                             st = os.stat(os.path.join(path_dir, f))
                             if (st.st_mode & 0o111) and f.startswith(text):
-                                self.completion_choices.append(f + ' ')
+                                self.completion_choices.append(f"{f} ")
                         except OSError:
                             continue
                 except OSError:
@@ -395,7 +395,7 @@ def radssh_shell_main():
                     logger.info('Loading plugin module: %s', plugin)
                     this_plugin = radssh.plugins.load_plugin(os.path.join(plugin_dir, module))
                     if hasattr(this_plugin, 'settings'):
-                        prefix = 'plugin.%s.' % plugin
+                        prefix = f'plugin.{plugin}.'
                         user_settings = {}
                         user_settings = dict([(k[len(prefix):], v) for k, v in defaults.items() if k.startswith(prefix)])
                         logger.info('Updating settings for plugin %s with: %s', plugin, user_settings)
@@ -424,7 +424,7 @@ def radssh_shell_main():
                 try:
                     lookup_doc = plugin.lookup.__doc__
                     print(module, plugin.__doc__)
-                    print('\t%s' % lookup_doc)
+                    print(f'\t{lookup_doc}')
                     try:
                         plugin.banner()
                     except AttributeError:
@@ -463,7 +463,7 @@ def radssh_shell_main():
     if defaults['loglevel'] not in ('CRITICAL', 'ERROR'):
         print('*** Parallel Shell ***')
         print('Using AuthManager:', a)
-        print('Logging to %s' % logdir)
+        print(f'Logging to {logdir}')
         pprint.pprint(defaults, indent=4)
         print()
         star.star_help()
@@ -493,7 +493,7 @@ def radssh_shell_main():
             console = RadSSHConsole(retain_recent=job_buffer)
 
     # Finally, we are able to create the Cluster
-    print('Connecting to %d hosts...' % len(hosts))
+    print(f'Connecting to {len(hosts)} hosts...')
     cluster = ssh.Cluster(hosts, auth=a, console=console, defaults=defaults)
 
     ready, disabled, failed_auth, failed_connect, dropped = cluster.connection_summary()
@@ -504,11 +504,11 @@ def radssh_shell_main():
         if any((failed_auth, failed_connect, dropped)):
             print('There were problems connecting to some nodes:')
             if failed_connect:
-                print('    %d nodes failed to connect' % failed_connect)
+                print(f'    {int(failed_connect)} nodes failed to connect')
             if failed_auth:
-                print('    %d nodes failed authentication' % failed_auth)
+                print(f'    {int(failed_auth)} nodes failed authentication')
             if dropped:
-                print('    %d dropped connections' % dropped)
+                print(f'    {int(dropped)} dropped connections')
             print('    Use "*info" for connection details.')
 
     if ready == 1 and disabled + failed_auth + failed_connect + dropped == 0:

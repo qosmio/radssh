@@ -66,7 +66,7 @@ def posix_shell(chan, encoding='UTF-8'):
                 x = sys.stdin.read()
                 chan.send(x.encode(encoding))
     except Exception as e:
-        print('Exception in TTY session\n%r\n' % e)
+        print(f'Exception in TTY session\n{e!r}\n')
 
 
 def terminal_size():
@@ -101,11 +101,11 @@ def radssh_tty(cluster, logdir, cmd, *args):
 
     for x in args:
         if not cluster.locate(x):
-            print('Skipping TTY request for %s (not found)\r' % str(x))
+            print(f'Skipping TTY request for {str(x)} (not found)\r')
             continue
         if prompt_delay:
             try:
-                print('Starting TTY session for [%s] in %g seconds...\r' % (x, prompt_delay))
+                print(f'Starting TTY session for [{x}] in {prompt_delay:g} seconds...\r')
                 print(
                     '(Press \'S\' to skip, \'X\' to abort, any other key to connect immediately)',
                     end='')
@@ -124,17 +124,17 @@ def radssh_tty(cluster, logdir, cmd, *args):
             session = None
             t = cluster.connections[cluster.locate(x)]
             if not t.is_authenticated():
-                print('Skipping TTY request for %s (not authenticated)\r' % str(x))
+                print(f'Skipping TTY request for {str(x)} (not authenticated)\r')
                 continue
             session = t.open_session()
             session.get_pty(width=cols, height=lines)
             if prompt_delay:
-                print('Starting TTY session for %s\r' % str(x))
+                print(f'Starting TTY session for {str(x)}\r')
             session.invoke_shell()
             if settings['rc_commands']:
-                print('# sending commands from {}\r'.format(settings['rc_file']))
+                print(f"# sending commands from {settings['rc_file']}\r")
                 for line in settings['rc_commands']:
-                    session.send((line + '\n').encode(cluster.defaults['character_encoding']))
+                    session.send(f"{line}\n".encode(cluster.defaults['character_encoding']))
                 # Attempt to quietly consume output from the sent commands
                 time.sleep(0.2)
                 session.recv(65536)
@@ -142,10 +142,10 @@ def radssh_tty(cluster, logdir, cmd, *args):
                 session.send('\n')
             posix_shell(session, cluster.defaults['character_encoding'])
             if prompt_delay:
-                print('TTY session for %s completed\r' % str(x))
+                print(f'TTY session for {str(x)} completed\r')
             session.close()
         except Exception as e:
-            print('Exception occurred while trying TTY for %s\r' % str(x))
+            print(f'Exception occurred while trying TTY for {str(x)}\r')
             print(repr(e))
             if session:
                 session.close()

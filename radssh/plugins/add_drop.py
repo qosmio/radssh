@@ -24,7 +24,7 @@ def star_add(cluster, logdir, cmd, *args):
         if not cluster.locate(host):
             new_hosts.append((host, None))
         else:
-            print('Host %s already connected' % host)
+            print(f'Host {host} already connected')
     if new_hosts:
         new_cluster = ssh.Cluster(new_hosts, auth=cluster.auth, defaults=cluster.defaults)
         for k, v in new_cluster.connections.items():
@@ -33,7 +33,7 @@ def star_add(cluster, logdir, cmd, *args):
 
         print('Added to cluster:')
         for host, status in new_cluster.status():
-            print('%14s : %s' % (str(host), status))
+            print(f'{str(host):14} : {status}')
 
 
 def star_drop(cluster, logdir, cmd, *args):
@@ -45,12 +45,12 @@ def star_drop(cluster, logdir, cmd, *args):
         hosts = set([k for k, v in cluster.connections.items()
                      if not isinstance(v, paramiko.Transport) or not v.is_authenticated()])
         hosts.update(cluster.disabled)
-        print('Dropping %d disabled/unauthenticated connections' % len(hosts))
+        print(f'Dropping {len(hosts)} disabled/unauthenticated connections')
 
     for host in hosts:
         host_key = cluster.locate(host)
         if host_key:
-            print('Disconnecting from %r' % host_key)
+            print(f'Disconnecting from {host_key!r}')
             try:
                 t = cluster.connections[host_key]
                 cluster.disabled.discard(host_key)
@@ -60,7 +60,7 @@ def star_drop(cluster, logdir, cmd, *args):
                 print(repr(e))
             cluster.connections.pop(host_key)
         else:
-            print('Host %s not connected' % host)
+            print(f'Host {host} not connected')
 
 
 star_commands = {'*add': star_add, '*drop': star_drop}

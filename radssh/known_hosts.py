@@ -42,7 +42,7 @@ def printable_fingerprint(k):
         seq = [int(x) for x in fingerprint]
     else:
         seq = [ord(x) for x in fingerprint]
-    return ':'.join(['%02x' % x for x in seq])
+    return ':'.join([f'{x:02x}' for x in seq])
 
 
 def load(filename):
@@ -53,7 +53,7 @@ def load(filename):
             try:
                 _loaded_files[filename] = KnownHosts(filename)
             except IOError as e:
-                logger.info('Unable to load known_hosts from %s: %s' % (filename, str(e)))
+                logger.info(f'Unable to load known_hosts from {filename}: {str(e)}')
                 _loaded_files[filename] = KnownHosts()
                 _loaded_files[filename]._filename = filename
     return _loaded_files[filename]
@@ -99,13 +99,13 @@ def verify_transport_key(t, hostname, port, sshconfig):
             if x.key.get_fingerprint() == hostkey.get_fingerprint():
                 break
             # Key types match, but not fingerprint
-            logger.warning('Host %s failed SSH key validation - conflicting entry [%s:%d]' % (hostname, x.filename, x.lineno))
-            raise Exception('Host %s failed SSH key validation - conflicting entry [%s:%d]' % (hostname, x.filename, x.lineno))
+            logger.warning(f'Host {hostname} failed SSH key validation - conflicting entry [{x.filename}:{int(x.lineno)}]')
+            raise Exception(f'Host {hostname} failed SSH key validation - conflicting entry [{x.filename}:{int(x.lineno)}]')
     else:
         # No match found
         if sshconfig.get('stricthostkeychecking', 'ask') == 'yes':
-            logger.warning('No host key found for %s and StrictHostKeyChecking=yes' % hostname)
-            raise Exception('Missing known_hosts entry for: %s' % hostname)
+            logger.warning(f'No host key found for {hostname} and StrictHostKeyChecking=yes')
+            raise Exception(f'Missing known_hosts entry for: {hostname}')
         add_host_entry = True
     # Check key for IP entry as well?
     if sshconfig.get('checkhostip', 'no') == 'yes':
@@ -117,16 +117,14 @@ def verify_transport_key(t, hostname, port, sshconfig):
                 if x.key.get_fingerprint() == hostkey.get_fingerprint():
                     break
                 logger.warning(
-                    'Host %s (IP %s) failed SSH key validation - conflicting entry [%s:%d]' %
-                    (hostname, verify_ip, x.filename, x.lineno))
+                    f'Host {hostname} (IP {verify_ip}) failed SSH key validation - conflicting entry [{x.filename}:{int(x.lineno)}]')
                 raise Exception(
-                    'Host %s (IP %s) failed SSH key validation - conflicting entry [%s:%d]' %
-                    (hostname, verify_ip, x.filename, x.lineno))
+                    f'Host {hostname} (IP {verify_ip}) failed SSH key validation - conflicting entry [{x.filename}:{int(x.lineno)}]')
         else:
             # No match found for IP
             if sshconfig.get('stricthostkeychecking', 'ask') == 'yes':
-                logger.warning('No host key found for IP %s (%s) and StrictHostKeyChecking=yes' % (verify_ip, hostname))
-                raise Exception('Missing known_hosts entry for IP: %s (%s)' % (verify_ip, hostname))
+                logger.warning(f'No host key found for IP {verify_ip} ({hostname}) and StrictHostKeyChecking=yes')
+                raise Exception(f'Missing known_hosts entry for IP: {verify_ip} ({hostname})')
             add_ip_entry = True
 
     if not add_host_entry and not add_ip_entry:
@@ -136,12 +134,12 @@ def verify_transport_key(t, hostname, port, sshconfig):
         if int(port) == 22:
             entries.append(hostname)
         else:
-            entries.append('[%s]:%s' % (hostname, port))
+            entries.append(f'[{hostname}]:{port}')
     if add_ip_entry:
         if int(port) == 22:
             entries.append(verify_ip)
         else:
-            entries.append('[%s]:%s' % (verify_ip, port))
+            entries.append(f'[{verify_ip}]:{port}')
     if sshconfig.get('stricthostkeychecking', 'ask') == 'no':
         add_key = user_known_hosts.add
     else:
@@ -151,11 +149,11 @@ def verify_transport_key(t, hostname, port, sshconfig):
         # Each hashed entry must be added independently
         for keyval in entries:
             if not add_key(keyval, hostkey, True):
-                raise Exception('Declined host key for %s - aborting connection' % keyval)
+                raise Exception(f'Declined host key for {keyval} - aborting connection')
     else:
         # Add host and IP entry as a single line
         if not add_key(','.join(entries), hostkey, False):
-            raise Exception('Declined host key for %s - aborting connection' % ','.join(entries))
+            raise Exception(f"Declined host key for {','.join(entries)} - aborting connection")
 
 
 class KnownHosts (object):
@@ -204,11 +202,10 @@ class KnownHosts (object):
                     self._hashed_hosts.append((hostname, lineno))
             else:
                 self._index[hostname].append(lineno)
-            self._lines.append('%s %s %s' %
-                               (hostname, keytype, keyval))
+            self._lines.append(f'{hostname} {keytype} {keyval}')
             if self._filename:
                 self.save()
-        logger.info('Added new known_hosts entry for %s (%s) to %s' % (hostname, printable_fingerprint(key), self._filename))
+        logger.info(f'Added new known_hosts entry for {hostname} ({printable_fingerprint(key)}) to {self._filename}')
         return HostKeyEntry([hostname], key, lineno=lineno)
 
     def load(self, filename):
@@ -249,7 +246,7 @@ class KnownHosts (object):
                                 self._index[h].append(offset + lineno)
                 except (UnreadableKey, TypeError):
                     logger.error(
-                        'Skipping unloadable key line (%s:%d): %s' % (filename, lineno + 1, line))
+                        f'Skipping unloadable key line ({filename}:{int(lineno + 1)}): {line}')
                     pass
 
     def save(self, filename=None):
@@ -265,7 +262,7 @@ class KnownHosts (object):
         with open(filename, 'w') as f:
             for line in self._lines:
                 if line is not None:
-                    f.write(line + '\n')
+                    f.write(f"{line}\n")
 
     def matching_keys(self, hostname, port=22):
         '''
@@ -274,7 +271,7 @@ class KnownHosts (object):
         lookup, and wildcard matching, and pays heed to negation entries.
         '''
         if hostname and port != 22:
-            hostname = '[%s]:%d' % (hostname, port)
+            hostname = f'[{hostname}]:{int(port)}'
         for lineno in self._index[hostname]:
             e = HostKeyEntry.from_line(self._lines[lineno], lineno, self._filename)
             if e and not e.negated(hostname):
@@ -326,7 +323,7 @@ class KnownHosts (object):
                 reply = ''
                 fingerprint = printable_fingerprint(key)
                 while reply.upper() not in ('Y', 'N', 'A'):
-                    reply = user_input('Accept new %s key with fingerprint [%s] for host %s ? (y/n/a) ' % (key.get_name(), fingerprint, host))
+                    reply = user_input(f'Accept new {key.get_name()} key with fingerprint [{fingerprint}] for host {host} ? (y/n/a) ')
                 if reply.upper() == 'N':
                     return False
                 if reply.upper() == 'A':
@@ -394,7 +391,7 @@ class HostKeyEntry:
                 raise UnreadableKey('Invalid known_hosts line', line, lineno, filename)
             return cls(names, key, marker, lineno, filename)
         except Exception as e:
-            raise UnreadableKey('Invalid known_hosts line (%s)' % e, line, lineno, filename)
+            raise UnreadableKey(f'Invalid known_hosts line ({e})', line, lineno, filename)
 
     def negated(self, hostname):
         '''

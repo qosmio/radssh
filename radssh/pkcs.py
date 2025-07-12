@@ -54,7 +54,7 @@ try:
                     if setup.default_passphrase:
                         # No need to interactively prompt - we failed
                         raise
-                    passphrase = user_password('Enter passphrase for [%s]: ' % setup.keyfile)
+                    passphrase = user_password(f'Enter passphrase for [{setup.keyfile}]: ')
                     self.private_key = load_pem_private_key(setup.keydata, password=passphrase, backend=self.backend)
                 self.public_key = self.private_key.public_key()
 
@@ -89,10 +89,10 @@ except ImportError:
                     if setup.default_passphrase:
                         # No need to interactively prompt - we failed
                         raise
-                    passphrase = user_password('Enter passphrase for [%s]: ' % setup.keyfile)
+                    passphrase = user_password(f'Enter passphrase for [{setup.keyfile}]: ')
                     rsakey = RSA.importKey(setup.keydata, passphrase)
             except Exception as e:
-                raise PKCSError('Unable to load key - %s' % str(e))
+                raise PKCSError(f'Unable to load key - {str(e)}')
             return Crypto.Cipher.PKCS1_OAEP.new(rsakey)
 
     except ImportError:
@@ -145,7 +145,7 @@ class PKCS_OAEP(object):
         if self.cipher_object:
             return self.cipher_object
         if not self.keydata:
-            raise PKCSError('No RSA Key available: %s' % self.keyfile)
+            raise PKCSError(f'No RSA Key available: {self.keyfile}')
         self.cipher_object = PKCS1_OAEP(self)
 
         return self.cipher_object
@@ -155,7 +155,7 @@ class PKCS_OAEP(object):
         try:
             return self._cipher().encrypt(blob)
         except Exception as e:
-            raise PKCSError('Unable to encrypt - %s' % str(e))
+            raise PKCSError(f'Unable to encrypt - {str(e)}')
 
     def encrypt(self, plaintext):
         '''Encrypt a string, returning base64 encoded ciphertext'''
@@ -166,14 +166,14 @@ class PKCS_OAEP(object):
         try:
             return self._cipher().decrypt(blob)
         except Exception as e:
-            raise PKCSError('Unable to decrypt - %s' % str(e))
+            raise PKCSError(f'Unable to decrypt - {str(e)}')
 
     def decrypt(self, ciphertext):
         '''Decrypt ciphertext passed in as a base64 encoded string back into plaintext'''
         try:
             data = base64.b64decode(ciphertext)
         except Exception as e:
-            raise PKCSError('Ciphertext cannot be base64 decoded: %s' % str(e))
+            raise PKCSError(f'Ciphertext cannot be base64 decoded: {str(e)}')
         return self.decrypt_binary(data).decode()
 
 
@@ -195,7 +195,7 @@ def main(args):
     '''
     encoding_mode = True
     pkcs = PKCS_OAEP()
-    print('Using RSA keyfile: [%s]' % pkcs.keyfile)
+    print(f'Using RSA keyfile: [{pkcs.keyfile}]')
 
     for x in args:
         if x == '--decrypt' or x == '-d':
@@ -205,14 +205,14 @@ def main(args):
             print('Switching to Encrypt mode')
             encoding_mode = True
         elif x.startswith('--key='):
-            print('Switching to key: %s' % x[6:])
+            print(f'Switching to key: {x[6:]}')
             pkcs = PKCS_OAEP(x[6:])
         else:
             if encoding_mode:
                 result = pkcs.encrypt(x)
             else:
                 result = pkcs.decrypt(x)
-            print('[%s] -> [%s]' % (x, result))
+            print(f'[{x}] -> [{result}]')
 
 
 if __name__ == '__main__':

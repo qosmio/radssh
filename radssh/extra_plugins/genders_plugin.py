@@ -37,11 +37,11 @@ def lookup(label):
         if not port:
             port = '22'
         if ip:
-            matches.append((host, ip + ':' + port, None))
+            matches.append((host, f"{ip}:{port}", None))
         elif fqdn:
-            matches.append((host, fqdn + ':' + port, None))
+            matches.append((host, f"{fqdn}:{port}", None))
         else:
-            matches.append((host, host + ':' + port, None))
+            matches.append((host, f"{host}:{port}", None))
     return iter(matches)
 
 
@@ -60,7 +60,7 @@ def gender_lookup(cluster, logdir, cmd, *args):
             for a in attr:
                 value = g.getattrval(a, str(host))
                 if value:
-                    data.append('%s=%s' % (a, value))
+                    data.append(f'{a}={value}')
                 else:
                     data.append(a)
             print(','.join(data), end='')

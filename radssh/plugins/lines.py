@@ -37,7 +37,7 @@ def lines(cluster, logdir, cmd, *args):
             res = job.result
             h.add(res.stdout.split(b'\n'))
     for count, line in h:
-        print('%6d - %s' % (count, line.decode(cluster.defaults['character_encoding'], 'replace')))
+        print(f"{int(count):6} - {line.decode(cluster.defaults['character_encoding'], 'replace')}")
 
 
 def words(cluster, logdir, cmd, *args):
@@ -50,7 +50,7 @@ def words(cluster, logdir, cmd, *args):
             for line in res.stdout.split(b'\n'):
                 h.add(line.split())
     for count, line in h:
-        print('%6d - %s' % (count, line.decode(cluster.defaults['character_encoding'], 'replace')))
+        print(f"{int(count):6} - {line.decode(cluster.defaults['character_encoding'], 'replace')}")
 
 
 star_commands = {'*lines': lines, '*words': words}

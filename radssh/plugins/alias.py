@@ -33,7 +33,7 @@ def star_history(cluster, logdir, cmd, *args):
     '''Print recent RadSSH command line history'''
     hist = gather_history()
     for n, line in enumerate(hist, 1):
-        print('%5d - %s' % (n, line))
+        print(f'{int(n):5} - {line}')
 
 
 last_command = ''
@@ -118,7 +118,7 @@ def print_aliases(cluster, logdir, cmd, *args):
     if aliases:
         print('Aliases loaded:')
         for name, value in aliases.items():
-            print('    %s = \'%s\'' % (name, value))
+            print(f'    {name} = \'{value}\'')
     else:
         print('No local aliases loaded')
 

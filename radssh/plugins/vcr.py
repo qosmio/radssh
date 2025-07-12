@@ -47,7 +47,7 @@ class Recorder(object):
         with open(self.filename, 'a') as f:
             f.write('\n'.join(self.data))
         if self.vars:
-            with open(self.filename + '.vars', 'w') as f:
+            with open(f"{self.filename}.vars", 'w') as f:
                 f.write(pprint.pformat(self.vars))
 
 
@@ -77,7 +77,7 @@ def record(cluster, logdir, cmd, *args):
         if vcr:
             print('Stop Recording')
             vcr.save()
-            print('Finished recording saved to %s (%d lines)' % (vcr.filename, len(vcr.data)))
+            print(f'Finished recording saved to {vcr.filename} ({len(vcr.data)} lines)')
             vcr = None
         else:
             print('Use "*record <filename>" to begin recording')
@@ -89,9 +89,9 @@ def record(cluster, logdir, cmd, *args):
     if vcr:
         # Save off old recording session
         vcr.save()
-        print('Saved existing recording to %s (%d lines)' % (vcr.filename, len(vcr.data)))
+        print(f'Saved existing recording to {vcr.filename} ({len(vcr.data)} lines)')
     vcr = Recorder(filename, cluster.user_vars)
-    print('Started new recording to %s' % filename)
+    print(f'Started new recording to {filename}')
 
 
 def pause(cluster, logdir, cmd, *args):
@@ -104,7 +104,7 @@ def pause(cluster, logdir, cmd, *args):
     if vcr.active:
         print('VCR unpaused')
     else:
-        print('VCR paused (%d lines in buffer)' % len(vcr.data))
+        print(f'VCR paused ({len(vcr.data)} lines in buffer)')
 
 
 def playback(cluster, logdir, cmd, *args):
@@ -113,17 +113,17 @@ def playback(cluster, logdir, cmd, *args):
         print('Try "*playback <filename>"')
         return
     filename = args[0]
-    if os.path.exists(filename + '.vars'):
+    if os.path.exists(f"{filename}.vars"):
         print('Loading saved variables...')
         try:
-            with open(filename + '.vars', 'r') as var_file:
+            with open(f"{filename}.vars", 'r') as var_file:
                 cluster.user_vars.update(eval(var_file.read()))
         except Exception as e:
-            print('Failed to load variables from [%s]' % filename + '.vars')
-            print('%r' % e)
+            print(f"Failed to load variables from [{filename}].vars")
+            print(f'{e!r}')
     with open(filename) as f:
         shell(cluster, logdir, f, cluster.defaults)
-    print('*** Playback of %s complete ***' % filename)
+    print(f'*** Playback of {filename} complete ***')
 
 
 star_commands = {'*record': record, '*pause': pause, '*playback': playback}

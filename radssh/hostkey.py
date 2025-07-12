@@ -61,7 +61,7 @@ def printable_fingerprint(k):
         seq = [int(x) for x in fingerprint]
     else:
         seq = [ord(x) for x in fingerprint]
-    return ':'.join(['%02x' % x for x in seq])
+    return ':'.join([f'{x:02x}' for x in seq])
 
 
 class HostKeyVerifier(object):
@@ -89,7 +89,7 @@ class HostKeyVerifier(object):
             lookup_name = hostname[:-3]
         else:
             host_base, port_base = hostname.rsplit(':', 1)
-            lookup_name = '[%s]:%s' % (host_base, port_base)
+            lookup_name = f'[{host_base}]:{port_base}'
         # Try remainder of host verification with locking
         self.lock.acquire()
         if self.hostkeys.check(lookup_name, key):
@@ -100,11 +100,11 @@ class HostKeyVerifier(object):
         if host_entry and key.get_name() in host_entry:
             # Entry mismatch
             expected = printable_fingerprint(host_entry[key.get_name()])
-            print('Host key mismatch for (%s)' % lookup_name)
+            print(f'Host key mismatch for ({lookup_name})')
             print('Expected:', expected)
             print('Got     :', actual)
             if self.mode == verify_mode.overwrite_blindly:
-                print('Blindly accepting updated host key for %s' % lookup_name)
+                print(f'Blindly accepting updated host key for {lookup_name}')
                 self.hostkeys.add(lookup_name, key.get_name(), key)
                 self.hostkeys.save(self.known_hosts_file)
                 self.lock.release()
@@ -116,15 +116,15 @@ class HostKeyVerifier(object):
                 return False
             accept_and_add = False
             if self.mode == verify_mode.prompt:
-                print('Unverified connection to "%s"' % lookup_name)
-                print('(Host Key Fingerprint [%s])' % actual)
+                print(f'Unverified connection to "{lookup_name}"')
+                print(f'(Host Key Fingerprint [{actual}])')
                 answer = input('Do you want to accept this key? (y/N): ')
                 if answer[0].upper() == 'Y':
                     accept_and_add = True
             if self.mode in (verify_mode.accept_new, verify_mode.overwrite_blindly):
                 accept_and_add = True
             if accept_and_add:
-                print('Accepting new host key for %s' % lookup_name)
+                print(f'Accepting new host key for {lookup_name}')
                 self.hostkeys.add(lookup_name, key.get_name(), key)
                 self.hostkeys.save(self.known_hosts_file)
                 self.lock.release()

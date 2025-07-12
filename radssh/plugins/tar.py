@@ -33,8 +33,8 @@ tar_sequence = itertools.count(1)
 def tar_command(cluster, logdir, cmd, *args):
     '''Gather remote files in bulk as tar/tbz/tgz archive'''
     opts = tar_options.get(cmd.split()[0], '-cv')
-    remote_command = 'tar %s %s' % (opts, ' '.join(args))
-    print('Collecting files into %s' % logdir)
+    remote_command = f"tar {opts} {' '.join(args)}"
+    print(f'Collecting files into {logdir}')
     # Temporarily disable console output, since tar contents are coming via stdout
     save_quiet = cluster.console.quiet(True)
     print(remote_command)
@@ -43,7 +43,7 @@ def tar_command(cluster, logdir, cmd, *args):
     for host, job in res.items():
         result = job.result
         if job.completed and result.return_code == 0:
-            outfile = os.path.join(logdir, 'tarfile_%d_%s.%s' % (tar_number, str(host), cmd.split()[0][1:]))
+            outfile = os.path.join(logdir, f'tarfile_{int(tar_number)}_{str(host)}.{cmd.split()[0][1:]}')
             with open(outfile, 'wb') as f:
                 f.write(bytes(result.stdout))
                 pass

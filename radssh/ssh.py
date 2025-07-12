@@ -122,7 +122,7 @@ class CommandResult(object):
             self.__setattr__(k, v)
 
     def __repr__(self):
-        return '%s "%s" : [%s]' % (self.status, self.command, self.return_code)
+        return f'{self.status} "{self.command}" : [{self.return_code}]'
 
 
 class Chunker(object):
@@ -299,7 +299,7 @@ def connection_worker(host, conn, auth, sshconfig={}):
         port = t.getpeername()[1]
         t.setName(host)
         hostname = host
-    t.set_log_channel('radssh.paramiko.transport.%s' % host)
+    t.set_log_channel(f'radssh.paramiko.transport.{host}')
     # Assign the ssh_config LogLevel to the paramiko.transport logger
     loglevel = sshconfig.get('loglevel', 'INFO')
     if loglevel.upper() in sshconfig_loglevels:
@@ -328,7 +328,7 @@ def connection_worker(host, conn, auth, sshconfig={}):
         print('Unable to verify host key for', verify_host)
         print(repr(e))
         t.close()
-        print('Connection to %s closed.' % str(hostname))
+        print(f'Connection to {str(hostname)} closed.')
         return t
     # After connection and passing host key verification, now try to authenticate
     auth.authenticate(t, sshconfig)
@@ -364,11 +364,11 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
                     data = s.recv(2048)
                     prompt_lines = [x.strip() for x in data.split('\n') if x.strip()]
                     persist_prompt = prompt_lines[-1]
-                    stdout.push('\n=== Start of Exec: Prompt is [%s] ===\n\n' % persist_prompt)
+                    stdout.push(f'\n=== Start of Exec: Prompt is [{persist_prompt}] ===\n\n')
                 except (socket.timeout, IndexError):
                     persist_prompt = None
-                    stdout.push('\n=== Start of Exec: Failed to read prompt [%s] ===\n\n' % data)
-                s.send('%s\n' % cmd)
+                    stdout.push(f'\n=== Start of Exec: Failed to read prompt [{data}] ===\n\n')
+                s.send(f'{cmd}\n')
                 break
         else:
             s = t.open_session()
@@ -420,13 +420,13 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
                 pass
             # Check quota limits
             if quota.time_exceeded(quiet_time):
-                process_completion = '*** Time Limit (%d) Reached ***' % quota.time_limit
+                process_completion = f'*** Time Limit ({int(quota.time_limit)}) Reached ***'
                 break
             if quota.bytes_exceeded(len(stdout)):
-                process_completion = '*** Byte Limit (%d) Reached ***' % quota.byte_limit
+                process_completion = f'*** Byte Limit ({int(quota.byte_limit)}) Reached ***'
                 break
             if quota.lines_exceeded(stdout.line_count):
-                process_completion = '*** Line Limit (%d) Reached ***' % quota.line_limit
+                process_completion = f'*** Line Limit ({int(quota.line_limit)}) Reached ***'
                 break
             if user_abort.isSet():
                 process_completion = '*** <Ctrl-C> Abort ***'
@@ -446,7 +446,7 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
         stdout.close()
         if stdout.discards:
             logging.getLogger('radssh').warning('StreamBuffer encountered %d discards', stdout.discards)
-            process_completion += 'StreamBuffer encountered %d discards' % stdout.discards
+            process_completion += f'StreamBuffer encountered {int(stdout.discards)} discards'
         stderr.close()
         return CommandResult(command=cmd, return_code=return_code, status=process_completion, stdout=stdout.buffer, stderr=stderr.buffer)
     else:
@@ -467,9 +467,9 @@ def sftp_thread(host, t, srcfile, dstfile=None, attrs=None):
     except IOError:
         pass
     s.close()
-    return CommandResult(command='SFTP %s -> %s' % (srcfile, dstfile),
+    return CommandResult(command=f'SFTP {srcfile} -> {dstfile}',
                          return_code=0, status='*** Complete ***',
-                         stdout='Transferred %d bytes' % attrs.st_size, stderr='')
+                         stdout=f'Transferred {int(attrs.st_size)} bytes', stderr='')
 
 
 def close_connection(t, k, signoff=''):
@@ -479,7 +479,7 @@ def close_connection(t, k, signoff=''):
             # Scan for persisitent session, and sign-off cleanly
             for s in t._channels.values():
                 if s.get_name() == t.remote_version:
-                    s.send('\n'.join(signoff.split(';')) + '\n')
+                    s.send(f"{'\\n'.join(signoff.split(';'))}\n")
         t.close()
 
 
@@ -541,7 +541,7 @@ class Cluster(object):
             config = self.get_ssh_config(label, conn)
             if mux:
                 for idx, mux_var in enumerate(mux.get(label, [])):
-                    mux_label = '%s:%d' % (label, idx)
+                    mux_label = f'{label}:{int(idx)}'
                     self.pending[self.dispatcher.submit(connection_worker, mux_label, conn, self.auth, config)] = label
                     self.mux[mux_label] = mux_var
             else:
@@ -563,11 +563,11 @@ class Cluster(object):
                         if transport.is_authenticated():
                             transport.set_keepalive(int(self.defaults.get('keepalive', 0)))
                             self.console.progress('.')
-                            logging.getLogger('radssh.connection').info('Authenticated to %s' % host)
+                            logging.getLogger('radssh.connection').info(f'Authenticated to {host}')
                             # IOS switch may require invoke_shell instead of exec_command
                             for id_string in self.defaults.get('force_tty', '').split(','):
                                 if id_string and id_string in transport.remote_version:
-                                    self.console.message('%s (%s)' % (host, transport.remote_version), 'FORCE TTY')
+                                    self.console.message(f'{host} ({transport.remote_version})', 'FORCE TTY')
                                     tty = transport.open_session()
                                     tty.set_name(transport.remote_version)
                                     tty.get_pty(width=132, height=43)
@@ -575,7 +575,7 @@ class Cluster(object):
                                     # If we have a signon string, send it to the remote host
                                     # translate semi-colons as newlines (and tack on an extra \n at the end)
                                     if self.defaults.get('force_tty.signon'):
-                                        tty.send('\n'.join(self.defaults.get('force_tty.signon', '').split(';')) + '\n')
+                                        tty.send(f"{'\\n'.join(self.defaults.get('force_tty.signon', '').split(';'))}\n")
                                         time.sleep(0.5)
                                     while tty.recv_ready():
                                         banner = tty.recv(2048)
@@ -584,19 +584,19 @@ class Cluster(object):
                                     tty.send('\n')
                         else:
                             self.console.progress('O')
-                            logging.getLogger('radssh.connection').warning('Failed to authenticate to %s: %s' % (host, str(transport)))
+                            logging.getLogger('radssh.connection').warning(f'Failed to authenticate to {host}: {str(transport)}')
                     except Exception:
                         self.console.progress('X')
-                        logging.getLogger('radssh.connection').warning('Failed to connect to %s: %s' % (host, str(transport)))
+                        logging.getLogger('radssh.connection').warning(f'Failed to connect to {host}: {str(transport)}')
                 break
             except UnfinishedJobs as e:
                 self.console.message(e.message, 'STALLED')
             except KeyboardInterrupt:
-                self.console.message('Aborting %d pending connections' % len(self.pending), 'Ctrl-C')
+                self.console.message(f'Aborting {len(self.pending)} pending connections', 'Ctrl-C')
                 for label in self.pending.values():
                     self.console.message(label, 'FAILED CONNECTION')
                     self.connections[label] = Exception('Failed to connect/Ctrl-C')
-                    logging.getLogger('radssh.connection').warning('Aborted connect to %s: Ctrl-C' % host)
+                    logging.getLogger('radssh.connection').warning(f'Aborted connect to {host}: Ctrl-C')
                 self.pending.clear()
                 # Blocked threads can cause issues with internal recordkeeping of Dispatcher
                 # object, and havoc if the thread ever unblocks and sends a completion message
@@ -621,7 +621,7 @@ class Cluster(object):
         else:
             # Give the option of reusing the existing auth options with new user
             alternate_password = user_password(
-                'Please enter a password for (%s) or leave blank to retry auth options with new user:' % user)
+                f'Please enter a password for ({user}) or leave blank to retry auth options with new user:')
             if alternate_password:
                 retry = AuthManager(user, auth_file=None, default_password=alternate_password)
             else:
@@ -641,15 +641,15 @@ class Cluster(object):
                 if '.' not in k and e.args == (-2, 'Name or service not known'):
                     # Try extended domain searches
                     for suffix in self.defaults.get('domains', '').split():
-                        fqdn = '%s.%s' % (k, suffix)
+                        fqdn = f'{k}.{suffix}'
                         try:
                             conn = socket.create_connection((fqdn, 22), timeout=float(self.defaults.get('socket.timeout', 2.0)))
-                            self.console.message('%s -> %s' % (k, fqdn), 'FQDN')
+                            self.console.message(f'{k} -> {fqdn}', 'FQDN')
                             break
                         except socket.error:
                             pass
             except Exception as e:
-                self.console.message('%s - %s' % (str(k), str(e)), 'EXCEPTION')
+                self.console.message(f'{str(k)} - {str(e)}', 'EXCEPTION')
             # For Reauth, do not pass sshconfig options since we're just trying to force a password authentication
             # self.pending[self.dispatcher.submit(connection_worker, k, conn, retry, self.sshconfig.lookup(str(k)))] = k
             self.pending[self.dispatcher.submit(connection_worker, k, conn, retry, {'identityfile': []})] = k
@@ -673,7 +673,7 @@ class Cluster(object):
                 if host_spec[0] == '[' and host_spec[-1] == ']':
                     host_spec = host_spec[1:-1]
                 else:
-                    host_spec = host_spec + ':' + supplied_port
+                    host_spec = f"{host_spec}:{supplied_port}"
                     supplied_port = None
         else:
             supplied_port = None
@@ -702,7 +702,7 @@ class Cluster(object):
                 s = t.open_channel('direct-tcpip', (host, 22), (host, 22))
                 tunnel_list.append((host, s))
             except Exception as e:
-                self.console.q.put((('TUNNEL', True), 'Unable to tunnel to %s: %s' % (host, e)))
+                self.console.q.put((('TUNNEL', True), f'Unable to tunnel to {host}: {e}'))
         return Cluster(tunnel_list, self.auth)
 
     def multiplex(self, mux_command='echo /mnt/gluster-brick*'):
@@ -721,7 +721,7 @@ class Cluster(object):
         '''Set active set of connections via list of fnmatch/IP patterns to limit run_command; pass in None to reset to enable all connections'''
         self.disabled = set()
         if enable_list is None:
-            self.console.q.put((('ENABLED', True), 'All %d hosts currently enabled' % len(self.connections)))
+            self.console.q.put((('ENABLED', True), f'All {len(self.connections)} hosts currently enabled'))
             return
         if isinstance(enable_list, str):
             # Handle single value being passed instead of list
@@ -750,13 +750,13 @@ class Cluster(object):
                     if fnmatch.fnmatch(str(host), pattern):
                         pattern_match.add(host)
             if len(pattern_match) > 1:
-                self.console.q.put((('ENABLED', True), 'Pattern wildcard "%s" matched %d hosts' % (pattern, len(pattern_match))))
+                self.console.q.put((('ENABLED', True), f'Pattern wildcard "{pattern}" matched {len(pattern_match)} hosts'))
             enabled.update(pattern_match)
         # Take complement of enabled set
         for host in self.connections:
             if host not in enabled:
                 self.disabled.add(host)
-        self.console.q.put((('ENABLED', True), '%d hosts currently enabled' % len(enabled)))
+        self.console.q.put((('ENABLED', True), f'{len(enabled)} hosts currently enabled'))
 
     def prep_command(self, cmd, target):
         '''Preprocess command line for target host execution (%ip%, %host%, etc)'''
@@ -776,8 +776,8 @@ class Cluster(object):
             auto_vars['%mux%'] = self.mux.get(target, '')
         if target in self.reverse_port:
             port = self.reverse_port[target]
-            auto_vars['%port%'] = '%d' % port
-            auto_vars['%tunnel%'] = '127.0.0.1:%d' % port
+            auto_vars['%port%'] = f'{int(port)}'
+            auto_vars['%tunnel%'] = f'127.0.0.1:{int(port)}'
 
         for v in vars:
             if v in auto_vars:
@@ -785,11 +785,11 @@ class Cluster(object):
                     cmd = cmd.replace(v, auto_vars[v])
                 except Exception as e:
                     self.console.q.put((('EXCEPTION', True),
-                                        'Substituting %s for %s: %s' % (v, target, str(e))))
+                                        f'Substituting {v} for {target}: {str(e)}'))
                     return None
             else:
                 if v not in self.user_vars:
-                    x = input('Missing variable setting for %s\nEnter value : ' % v)
+                    x = input(f'Missing variable setting for {v}\nEnter value : ')
                     self.user_vars[v] = x
                 cmd = cmd.replace(v, self.user_vars[v])
 
@@ -824,7 +824,7 @@ class Cluster(object):
             # Wait for background jobs to complete
             while self.pending:
                 try:
-                    self.console.status('Completed on %d/%d hosts' % (len(result), total))
+                    self.console.status(f'Completed on {len(result)}/{int(total)} hosts')
                     for pid, summary in self.dispatcher.async_results():
                         host = self.pending.pop(pid)
                         result[host] = summary
@@ -840,7 +840,7 @@ class Cluster(object):
                                     self.console.q.put(((host, True), job.result.stderr.decode(self.defaults['character_encoding'])))
                         else:
                             ordered_list.remove(host)
-                        self.console.status('Completed on %d/%d hosts' % (len(result), total))
+                        self.console.status(f'Completed on {len(result)}/{int(total)} hosts')
 
                 except UnfinishedJobs:
                     pass
@@ -851,18 +851,18 @@ class Cluster(object):
                         # break
                     else:
                         last_interrupt = time.time()
-                        self.console.status('Completed on %d/%d hosts' % (len(result), total))
+                        self.console.status(f'Completed on {len(result)}/{int(total)} hosts')
                         self.console.q.put((('CONSOLE', True), '*** <Ctrl-C> ***'))
                         in_flight = sorted([str(k) for k in self.pending.values() if k not in result])
                         for host in in_flight:
                             self.console.replay_recent(host)
 
-                        self.console.q.put((('CONSOLE', True), 'In-Flight commands running on %s' % str(in_flight)))
+                        self.console.q.put((('CONSOLE', True), f'In-Flight commands running on {str(in_flight)}'))
                         self.console.q.put((('CONSOLE', True), 'To kill: Press <Ctrl-C> again within 2 seconds'))
                 except Exception as e:
-                    self.console.q.put((('EXCEPTION', True), '%s' % str(e)))
+                    self.console.q.put((('EXCEPTION', True), f'{str(e)}'))
             self.console.join()
-            self.console.status('Completed on %d/%d hosts' % (len(result), total))
+            self.console.status(f'Completed on {len(result)}/{int(total)} hosts')
 
         self.console.status('Ready')
         # join(True) here causes the last_lines buffer to be cleared
@@ -881,14 +881,12 @@ class Cluster(object):
                         lines = v.stdout.strip().split(b'\n')
                         if lines:
                             with open(os.path.join(logdir, self.log_out), 'ab') as f:
-                                f.write(('[%s] === "%s" %s [%s] ===\n' %
-                                        (str(k), v.command, v.status, v.return_code)).encode(encoding))
+                                f.write(f'[{str(k)}] === "{v.command}" {v.status} [{v.return_code}] ===\n'.encode(encoding))
                                 for line in lines:
-                                    f.write(("[{0}]".format(str(k)) + filter_tty_attrs(line).decode(encoding, 'replace') + "\n").encode(encoding))
-                    with open(os.path.join(logdir, str(k) + '.log'), 'ab') as f:
+                                    f.write(f"[{str(k)}]{filter_tty_attrs(line).decode(encoding, 'replace')}\n".encode(encoding))
+                    with open(os.path.join(logdir, f"{str(k)}.log"), 'ab') as f:
                         if command_header:
-                            f.write(('=== "%s" %s [%s] ===\n' %
-                                    (v.command, v.status, v.return_code)).encode(encoding))
+                            f.write(f'=== "{v.command}" {v.status} [{v.return_code}] ===\n'.encode(encoding))
                         f.write(v.stdout)
                         f.write(b'\n')
                     if v.stderr:
@@ -896,11 +894,10 @@ class Cluster(object):
                             lines = v.stderr.strip().split(b'\n')
                             if lines:
                                 with open(os.path.join(logdir, self.log_err), 'ab') as f:
-                                    f.write(('[%s] === "%s" %s [%s] ===\n' %
-                                            (str(k), v.command, v.status, v.return_code)).encode(encoding))
+                                    f.write(f'[{str(k)}] === "{v.command}" {v.status} [{v.return_code}] ===\n'.encode(encoding))
                                     for line in lines:
-                                        f.write(("[{0}]".format(str(k)) + filter_tty_attrs(line).decode(encoding, 'replace') + "\n").encode(encoding))
-                        with open(os.path.join(logdir, str(k) + '.stderr'), 'ab') as f:
+                                        f.write(f"[{str(k)}]{filter_tty_attrs(line).decode(encoding, 'replace')}\n".encode(encoding))
+                        with open(os.path.join(logdir, f"{str(k)}.stderr"), 'ab') as f:
                             f.write(v.stderr)
                             f.write(b'\n')
                 else:
@@ -909,9 +906,9 @@ class Cluster(object):
                         if lines:
                             with open(os.path.join(logdir, self.log_err), 'ab') as f:
                                 for line in lines:
-                                    f.write(("[{0}]".format(str(k)) + line + "\n").encode(encoding))
-                    with open(os.path.join(logdir, str(k) + '.log'), 'ab') as f:
-                        f.write(('%s\n' % str(v)).encode(encoding))
+                                    f.write(f"[{str(k)}]{line}\n".encode(encoding))
+                    with open(os.path.join(logdir, f"{str(k)}.log"), 'ab') as f:
+                        f.write(f'{str(v)}\n'.encode(encoding))
 
     def sftp(self, src, dst=None, attrs=None):
         '''SFTP a file (put) to all nodes'''
@@ -931,8 +928,8 @@ class Cluster(object):
                     host = self.pending.pop(pid)
                     result[host] = summary
                     if not summary.completed:
-                        self.console.message('%s - %s' % (str(host), repr(summary.result)), 'EXCEPTION')
-                    self.console.status('Completed on %d/%d hosts' % (total - len(self.pending), total))
+                        self.console.message(f'{str(host)} - {repr(summary.result)}', 'EXCEPTION')
+                    self.console.status(f'Completed on {int(total - len(self.pending))}/{int(total)} hosts')
             except UnfinishedJobs:
                 pass
             except KeyboardInterrupt:
@@ -954,16 +951,16 @@ class Cluster(object):
                 connect_time = -1
             if isinstance(t, paramiko.Transport):
                 if not t.is_active():
-                    bad.append((k, '(%7.3fs) Not connected' % connect_time))
+                    bad.append((k, f'({connect_time:7.3f}s) Not connected'))
                 elif not t.is_authenticated():
-                    bad.append((k, '(%7.3fs) Connected to %s / not authenticated' % (connect_time, t.getpeername()[0])))
+                    bad.append((k, f'({connect_time:7.3f}s) Connected to {t.getpeername()[0]} / not authenticated'))
                 else:
                     if k in self.disabled:
-                        good.append((k, '(%7.3fs) Authenticated as %s to %s (Disabled)' % (connect_time, t.get_username(), t.getpeername()[0])))
+                        good.append((k, f'({connect_time:7.3f}s) Authenticated as {t.get_username()} to {t.getpeername()[0]} (Disabled)'))
                     else:
-                        good.append((k, '(%7.3fs) Authenticated as %s to %s' % (connect_time, t.get_username(), t.getpeername()[0])))
+                        good.append((k, f'({connect_time:7.3f}s) Authenticated as {t.get_username()} to {t.getpeername()[0]}'))
             else:
-                bad.append((k, '(%8.3fs) %s' % (connect_time, str(t))))
+                bad.append((k, f'({connect_time:8.3f}s) {str(t)}'))
         return good + bad
 
     def connection_summary(self):

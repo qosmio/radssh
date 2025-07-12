@@ -25,7 +25,7 @@ class UnfinishedJobs(Exception):
     '''Exception raised by async_results() iterator when queue is stalled'''
     def __init__(self, remaining, total):
         Exception.__init__(self, remaining, total)
-        self.message = 'Waiting on %d of %d results' % (remaining, total)
+        self.message = f'Waiting on {int(remaining)} of {int(total)} results'
 
 
 class JobSummary(object):
@@ -43,9 +43,9 @@ class JobSummary(object):
 
     def __str__(self):
         if self.completed:
-            return 'Completed [%s] (Run by %s in %g seconds)' % (self.result, self.thread_name, (self.end_time - self.start_time))
+            return f'Completed [{self.result}] (Run by {self.thread_name} in {self.end_time - self.start_time:g} seconds)'
         else:
-            return 'Failed [%r] (Run by %s in %g seconds)' % (self.result, self.thread_name, (self.end_time - self.start_time))
+            return f'Failed [{self.result!r}] (Run by {self.thread_name} in {self.end_time - self.start_time:g} seconds)'
 
 
 def generic_dispatch(inQ, outQ):
@@ -97,7 +97,7 @@ class Dispatcher(object):
         while num > 0 and len(self.workers) < self.threadpool_size:
             thr = threading.Thread(target=generic_dispatch, args=(self.inQ, self.outQ))
             thr.setDaemon(True)
-            thr.setName('%s-%d' % ('dispatcher', next(self.thread_sequence)))
+            thr.setName(f'dispatcher-{int(next(self.thread_sequence))}')
             thr.start()
             self.workers.append(thr)
             num -= 1
@@ -107,7 +107,7 @@ class Dispatcher(object):
 
     def submit(self, handler, *args, **kwargs):
         if not callable(handler):
-            raise TypeError('Cannot use %r as dispatch handler' % handler)
+            raise TypeError(f'Cannot use {handler!r} as dispatch handler')
         if self.terminated.is_set():
             raise RuntimeError('Dispatcher has been terminated: Unable to submit calls')
         if self.dynamic and self.inQ.size() > 1:
