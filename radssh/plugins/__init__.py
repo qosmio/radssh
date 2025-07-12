@@ -9,7 +9,7 @@
 # included with the distribution as file LICENSE.txt
 #
 
-'''
+"""
 RadSSH Plugins
 ==============
 
@@ -33,7 +33,7 @@ Init Function
 If a module has an init() function, this will be called by the shell
 when the module is loaded. The shell will pass a limited number of keyword
 arguments, and for future/backward compatibility, the plugin's init
-function should be defined as init(\*\*kwargs) and permit the caller to
+function should be defined as init(**kwargs) and permit the caller to
 pass in any superset of arguments beyond what is strictly necessary for
 the plugin's initialization needs.
 
@@ -41,7 +41,7 @@ The current (API v1.0) list of arguments passed into a plugin init() call:
  - defaults: Dictionary of configuration settings {keyword: value}
  - auth: The shell's AuthManager object
  - plugins: The shell's list object of loaded plugin modules
- - star_commands: The shell's dict object mapping \*command to callable function
+ - star_commands: The shell's dict object mapping *command to callable function
 
 
 Lookup Function
@@ -66,27 +66,27 @@ Star Commands
 
 If a module has a dictionary object named 'star_commands', this mapping
 will be integrated into the RadSSH shell star_command mapping. The keys
-should be strings of the form '\*command', and the values should either be
+should be strings of the form '*command', and the values should either be
 objects of type StarCommand, or plain callable functions that the shell
 will use to create StarCommand objects from (with defaults).
 
-When the user enters '\*command' to the shell, the corresponding function
+When the user enters '*command' to the shell, the corresponding function
 is called, passing the following arguments:
 
   - cluster: the RadSSH Cluster object managed by the shell
   - logdir: the path to the RadSSH shell log directory
-  - command_line: the *entire* command line text, including the \*command and all embedded spaces
-  - \*args: The space-delimited arguments from the command line (spaces are stripped)
+  - command_line: the *entire* command line text, including the *command and all embedded spaces
+  - *args: The space-delimited arguments from the command line (spaces are stripped)
 
-The \*command routine is passed total control of the RadSSH shell execution process.
+The *command routine is passed total control of the RadSSH shell execution process.
 It can make use of the Cluster object to perform remote command execution, file
 transfers, connections and disconnections, enables & disables, etc. It can also
 create, update, read, delete files in the log directory. It can also create a new
 Cluster object and pass it back as a return value, which will cause RadSSH to
 shift context to the new cluster for the remainder of the session.
-'''
+"""
 
-import imp
+import importlib.util
 import os
 import warnings
 
@@ -95,7 +95,7 @@ class StarCommand(object):
     '''
     StarCommand Class
     Allow offloading of special help/synopsis text handling from a basic
-    callable \*command handler callable function. If no synopsis or help text
+    callable *command handler callable function. If no synopsis or help text
     is provided, the function docstring will be used. Help can be auto-invoked
     if help flags are discovered on the command line or if the parameter count
     is out of range.
@@ -151,14 +151,15 @@ def load_plugin(src):
     if not src.endswith('.py'):
         raise RuntimeError('RadSSH Plugins must be .py files [%s]' % src)
     module = src[:-3]
-    handle = imp.find_module(module, [plugin_dir])
-    plugin = imp.load_module(module, *handle)
+    spec = importlib.util.spec_from_file_location(module, os.path.join(plugin_dir, src))
+    module_obj = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module_obj)
     # Patch in StarCommand class wrapper for plain *command functions
-    if hasattr(plugin, 'star_commands'):
-        for name, cmd in plugin.star_commands.items():
+    if hasattr(module_obj, 'star_commands'):
+        for name, cmd in module_obj.star_commands.items():
             if not isinstance(cmd, StarCommand):
-                plugin.star_commands[name] = StarCommand(cmd)
-    return plugin
+                module_obj.star_commands[name] = StarCommand(cmd)
+    return module_obj
 
 
 def discover_plugin(src):
