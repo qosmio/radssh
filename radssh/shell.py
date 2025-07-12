@@ -33,6 +33,9 @@ import logging
 from . import ssh
 from . import config
 from .console import RadSSHConsole, monochrome
+import radssh
+import radssh.plugins
+
 try:
     from . import star_commands as star
     import radssh.plugins
@@ -70,7 +73,7 @@ except OSError:
 command_listeners = []
 
 
-def shell(cluster, logdir=None, playbackfile=None, defaults=None):
+def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None):
     '''Very basic interactive shell'''
     if not defaults:
         defaults = config.load_default_settings()
@@ -126,6 +129,9 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None):
                         cluster = ret
                     continue
                 r = cluster.run_command(cmd)
+                if histfile:
+                    add_to_history(cmd)
+                    readline.write_history_file(histfile)
                 if logdir:
                     cluster.log_result(logdir, encoding=defaults['character_encoding'])
                 # Quick summary report, if jobs failed
@@ -177,7 +183,6 @@ class radssh_tab_handler(object):
         except TypeError:
             # pyreadline (windows) readline.__doc__ is None (not iterable)
             self.using_libedit = False
-        # self.using_libedit = True
         self.completion_choices = []
         readline.set_completer()
         readline.set_completer(self.complete)
@@ -195,11 +200,7 @@ class radssh_tab_handler(object):
             for choice in self.star.commands.keys():
                 if choice.startswith(lead_in):
                     self.completion_choices.append(choice + ' ')
-        # Discrepancy with readline/libedit and handling of leading *
-        if self.using_libedit:
-            return self.completion_choices[state]
-        else:
-            return self.completion_choices[state][1:]
+        return self.completion_choices[state][1:]
 
     def complete_executable(self, lead_in, text, state):
         if state == 0:
@@ -244,10 +245,7 @@ class radssh_tab_handler(object):
                         full_path += '/'
                     except Exception:
                         pass
-                    if self.using_libedit:
-                        self.completion_choices.append(full_path)
-                    else:
-                        self.completion_choices.append(x)
+                    self.completion_choices.append(x)
             self.completion_choices.append(None)
         return self.completion_choices[state]
 
@@ -265,10 +263,7 @@ class radssh_tab_handler(object):
                         # See if target is a directory, and append '/' if it is
                         x += '/'
                         full_path += '/'
-                    if self.using_libedit:
-                        self.completion_choices.append(full_path)
-                    else:
-                        self.completion_choices.append(x)
+                    self.completion_choices.append(x)
             self.completion_choices.append(None)
         return self.completion_choices[state]
 
@@ -309,12 +304,47 @@ def safe_write_history_file(filename):
         except Exception:
             raise e
 
+def remove_duplicates(filename):
+    try:
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+
+        seen = set()
+        unique_lines = []
+        for line in reversed(lines):  # Start from the end to move last occurrence to the end
+            if line.strip() not in seen:
+                unique_lines.append(line.strip())
+                seen.add(line.strip())
+        unique_lines.reverse()  # Restore the order
+
+        # with open(filename, 'w') as f:
+            # f.write('\n'.join(unique_lines) + '\n')
+    except FileNotFoundError:
+        pass  # If the file doesn't exist, just ignore
+
+def add_to_history(command):
+    if command:
+        # Check if the command is already in the in-memory history
+        history_size = readline.get_current_history_length()
+        for i in range(history_size, 0, -1):
+            if readline.get_history_item(i).strip() == command:
+                readline.remove_history_item(i - 1)  # Remove previous occurrence
+
+        # Add the new command to history
+        readline.add_history(command)
+
+
+def read_history_without_dupes(filename):
+    # remove_duplicates(filename)
+    readline.set_pre_input_hook(lambda: readline.clear_history())
+    readline.read_history_file(filename)
 
 ################################################################################
 
 def radssh_shell_main():
     args = sys.argv[1:]
     defaults = config.load_settings()
+    histfile = None
     # Keep command line options separately, for reuse in sshconfig defaults
     cmdline_options = config.command_line_settings(args, defaults.get('user.settings'))
     defaults.update(cmdline_options)
@@ -495,21 +525,17 @@ def radssh_shell_main():
     if defaults.get('historyfile'):
         histfile = os.path.expanduser(defaults['historyfile'])
         try:
-            readline.read_history_file(histfile)
+            read_history_without_dupes(histfile)
         except IOError:
             pass
-        readline.set_history_length(int(os.environ.get('HISTSIZE', 1000)))
-        if sys.version_info.major == 2:
-            # Workaround #32 - fix not backported to Python 2.X
-            atexit.register(safe_write_history_file, histfile)
-        else:
-            atexit.register(readline.write_history_file, histfile)
+        readline.set_history_length(int(os.environ.get('HISTSIZE', 100000)))
+        atexit.register(readline.write_history_file, histfile)
 
     # Add TAB completion for *commands and remote file paths
-    tab_completion = radssh_tab_handler(cluster, star)
+    star.tab_completion = radssh_tab_handler(cluster, star)
 
     # With the cluster object, start interactive session
-    shell(cluster=cluster, logdir=logdir, defaults=defaults)
+    shell(cluster=cluster, logdir=logdir, defaults=defaults, histfile=histfile)
 
 
 if __name__ == '__main__':
