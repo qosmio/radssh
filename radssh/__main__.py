@@ -28,7 +28,7 @@ import time
 import platform
 import threading
 
-import netaddr
+import ipaddress
 import radssh
 import paramiko
 
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     # Dependent modules - Print version and location
     print('  Using Paramiko ', paramiko.__version__, 'from', paramiko.__file__)
     print('  Using', crypto_module.__name__, crypto_module.__version__, 'from', crypto_module.__file__)
-    print('  Using netaddr', netaddr.__version__, 'from', netaddr.__file__)
+    print('  Using ipaddress', ipaddress.__version__ if hasattr(ipaddress, '__version__') else 'built-in', 'from', ipaddress.__file__)
     print()
 
     # Runtime environment info

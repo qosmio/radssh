@@ -20,7 +20,7 @@ import socket
 import time
 import uuid
 import fnmatch
-import netaddr
+import ipaddress
 import re
 import logging
 import hashlib
@@ -60,8 +60,30 @@ sshconfig_loglevels = {
 
 
 def filter_tty_attrs(line):
-    '''Handle the attributes for colors, etc.'''
-    return FILTER_TTY_ATTRS_RE.sub(b'', line)
+	'''Handle the attributes for colors, etc.'''
+	return FILTER_TTY_ATTRS_RE.sub(b'', line)
+
+
+def ip_matches_glob(ip_str, glob_pattern):
+	"""Check if an IP address matches a glob pattern like '192.168.1.*'"""
+	import fnmatch
+	return fnmatch.fnmatch(ip_str, glob_pattern)
+
+
+def ip_in_network_or_glob(ip_str, pattern):
+	"""Check if IP is in network (CIDR) or matches glob pattern"""
+	try:
+		# Try as IP address first
+		ip = ipaddress.ip_address(ip_str)
+		# Try as network/subnet
+		try:
+			network = ipaddress.ip_network(pattern, strict=False)
+			return ip in network
+		except ValueError:
+			# Try as glob pattern
+			return ip_matches_glob(ip_str, pattern)
+	except ValueError:
+		return False
 
 
 class Quota(object):
@@ -715,21 +737,16 @@ class Cluster(object):
             # Try using pattern as IP network or glob first
             # if it doesn't look like either, then treat it as a name wildcard
             pattern_match = set()
-            try:
-                ip_match = netaddr.IPNetwork(pattern)
-            except Exception:
-                try:
-                    ip_match = netaddr.IPSet(netaddr.IPGlob(pattern))
-                except Exception:
-                    ip_match = None
+            ip_match = False
             for host, t in self.connections.items():
-                if ip_match:
-                    try:
-                        if netaddr.IPAddress(t.getpeername()[0]) in ip_match:
-                            pattern_match.add(host)
-                    except Exception:
-                        pass
-                else:
+                try:
+                    remote_ip = t.getpeername()[0]
+                    if ip_in_network_or_glob(remote_ip, pattern):
+                        pattern_match.add(host)
+                        ip_match = True
+                except Exception:
+                    pass
+                if not ip_match:
                     if fnmatch.fnmatch(str(host), pattern):
                         pattern_match.add(host)
             if len(pattern_match) > 1:
@@ -968,7 +985,7 @@ class Cluster(object):
         return (ready, disabled, failed_auth, failed_connect, dropped)
 
     def locate(self, s):
-        '''Lookup cluster entry - keys may be netaddr.IPAddress, not string'''
+        '''Lookup cluster entry - keys may be ipaddress.IPAddress, not string'''
         # Trivial case, string to string match
         if s in self.connections:
             return s

@@ -21,12 +21,34 @@ import threading
 import logging
 import base64
 
-import netaddr
+import ipaddress
 
 import paramiko
 
 from .pkcs import PKCS_OAEP
 from .console import user_password
+
+
+def ip_matches_glob(ip_str, glob_pattern):
+	"""Check if an IP address matches a glob pattern like '192.168.1.*'"""
+	import fnmatch
+	return fnmatch.fnmatch(ip_str, glob_pattern)
+
+
+def ip_in_network_or_glob(ip_str, pattern):
+	"""Check if IP is in network (CIDR) or matches glob pattern"""
+	try:
+		# Try as IP address first
+		ip = ipaddress.ip_address(ip_str)
+		# Try as network/subnet
+		try:
+			network = ipaddress.ip_network(pattern, strict=False)
+			return ip in network
+		except ValueError:
+			# Try as glob pattern
+			return ip_matches_glob(ip_str, pattern)
+	except ValueError:
+		return False
 
 
 class PlainText(object):
@@ -410,20 +432,11 @@ class AuthManager(object):
                 self.logger.error('Remote dropped connection')
                 return None
             if filter and filter != '*':
-                remote_ip = netaddr.IPAddress(T.getpeername()[0])
-                try:
-                    subnet = netaddr.IPGlob(filter)
-                    if remote_ip not in subnet:
+                remote_ip_str = T.getpeername()[0]
+                if not ip_in_network_or_glob(remote_ip_str, filter):
+                    # Not a subnet or IPGlob - try name based matching (fnmatch style, not regex)
+                    if not fnmatch.fnmatch(T.name, filter):
                         continue
-                except netaddr.AddrFormatError:
-                    try:
-                        subnet = netaddr.IPNetwork(filter)
-                        if remote_ip not in subnet:
-                            continue
-                    except netaddr.AddrFormatError:
-                        # Not a subnet or IPGlob - try name based matching (fnmatch style, not regex)
-                        if not fnmatch.fnmatch(T.name, filter):
-                            continue
             try:
                 if as_password:
                     try:
