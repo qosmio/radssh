@@ -17,7 +17,8 @@ Really crude support for shorthand !$ and !! expansion
 import os
 import subprocess
 import readline
-
+import re
+import logging
 
 def gather_history():
     '''Pull history lines as a list'''
@@ -48,14 +49,23 @@ def init(**kwargs):
     elif os.path.exists(os.path.expanduser('~/.bashrc')):
         cmd = ['bash', '-ic',
                'source ~/.bashrc; alias| sed -e \'s/^alias //\'']
-    elif os.path.exists(os.path.expanduser('~/.profile')):
-        cmd = ['sh', '-ic', '. ~/.profile; alias']
+    elif os.path.exists(os.path.expanduser('~/.zshenv')):
+        cmd = ['zsh', '-ic', '. ~/.zshenv; alias']
+    elif os.path.exists(os.path.expanduser('~/.zshrc')):
+        cmd = ['zsh', '-ic', '. ~/.zshrc; alias']
     if cmd:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        p.stdin.close()  # close stdin to avoid zsh waiting for input
         p.wait()
         for line in p.stdout:
             name, value = line.decode().split('=', 1)
-            aliases[name] = value.strip()[1:-1].replace("'\\''", "'")
+            value = value.strip()  # Remove leading/trailing spaces
+            if value.startswith("'") and value.endswith("'"):  # Ensure both start and end with single quote
+                value = value[1:-1]
+            value = value.replace("'\\''", "'")  # Handle escaped single quotes
+            value = value.replace("''", "'")  # Handle escaped single quotes
+            aliases[name] = value
+            logging.debug('Alias %s = %s', name, value)
 
 
 def command_listener(cmd):
@@ -81,8 +91,23 @@ def command_listener(cmd):
     # Save last_command prior to alias substitution so that alias
     # substitution result is not saved into last_command.
     last_command = new_cmd
+
     if words[0] in aliases:
         new_cmd = new_cmd.replace(words[0], aliases[words[0]], 1)
+
+    # Handle !! aliases
+    if '!!' in new_cmd:
+        # Find and replace !! with the corresponding alias
+        pattern = re.compile(r'!!(\w+)')  # Match !! followed by a word
+        match = pattern.search(new_cmd)
+
+        if match:
+            alias_key = match.group(1)  # Get the alias name after !!
+            if alias_key in aliases:
+                # Replace the !!alias with the alias command
+                alias_value = aliases[alias_key]
+                new_cmd = new_cmd.replace(match.group(0), alias_value, 1)
+
     if new_cmd != cmd:
         return new_cmd
     return None
