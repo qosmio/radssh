@@ -30,7 +30,7 @@ for p, d, f in os.walk('radssh'):
     for ignore in [subdir for subdir in d if not subdir.endswith('_plugins')]:
         d.remove(ignore)
     if p.endswith('_plugins'):
-        print('Merging plugins from %s' % p)
+        print(f'Merging plugins from {p}')
         for plugin in f:
             if not plugin.endswith('.pyc'):
                 shutil.copy2(os.path.join(p, plugin), 'radssh/plugins')
@@ -42,7 +42,7 @@ pkg_data_files = [join('plugins', f) for f in listdir('plugins') if not f.endswi
 os.chdir(olddir)
 
 # Conditional requirements (colorama for Windows platform only)
-required_packages = ['paramiko>=2.7.0', 'netaddr']
+required_packages = ['paramiko>=2.7.0']
 if sys.platform.startswith('win'):
     required_packages.append('colorama>=0.3.9')
     required_packages.append('pyreadline')
