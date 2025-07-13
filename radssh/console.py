@@ -47,7 +47,7 @@ def monochrome(tag, text, max_label_width=0):
     if max_label_width > 0:
         label = label.rjust(max_label_width)
     for line in text.split('\n'):
-        yield f'{label}| {line}\n'
+        yield f'{label}❯ {line}\n'
 
 
 def colorizer(tag, text, max_label_width=0):
@@ -55,12 +55,17 @@ def colorizer(tag, text, max_label_width=0):
     label, hilight = tag
     if max_label_width > 0:
         label = label.rjust(max_label_width)
-    color = 1 + hash(label.strip()) % 7
+
+    # Better hash distribution using sum of character codes
+    label_clean = label.strip()
+    char_sum = sum(ord(c) * (i + 1) for i, c in enumerate(label_clean))
+    color = 1 + char_sum % 7
+
     for line in text.split('\n'):
         if hilight:
-            yield f'\x1b[30;4{int(color)}m{label}|\x1b[0;1;3{int(color)}m {line}\x1b[0m\n'
+            yield f'\x1b[30;4{int(color)}m{label}❯\x1b[0;1;3{int(color)}m {line}\x1b[0m\n'
         else:
-            yield f'\x1b[3{int(color)}m{label}| {line}\x1b[0m\n'
+            yield f'\x1b[3{int(color)}m{label}❯ {line}\x1b[0m\n'
 
 
 class RadSSHConsole:
