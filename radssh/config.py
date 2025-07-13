@@ -148,11 +148,10 @@ def load_settings_file(f):
         if '=' in line:
             setting = line.split('=', 1)
             settings[setting[0].strip()] = setting[1].strip()
+        elif hasattr(f, 'name'):
+            warnings.warn_explicit(f'Invalid line in settings file [{line}]', RuntimeWarning, f.name, line_number)
         else:
-            if hasattr(f, 'name'):
-                warnings.warn_explicit(f'Invalid line in settings file [{line}]', RuntimeWarning, f.name, line_number)
-            else:
-                warnings.warn(RuntimeWarning(f'Invalid line in default settings (Line {int(line_number)}) "{line}"'))
+            warnings.warn(RuntimeWarning(f'Invalid line in default settings (Line {int(line_number)}) "{line}"'))
     return settings
 
 

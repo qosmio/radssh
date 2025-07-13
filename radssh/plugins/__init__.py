@@ -91,7 +91,7 @@ import os
 import warnings
 
 
-class StarCommand(object):
+class StarCommand:
     '''
     StarCommand Class
     Allow offloading of special help/synopsis text handling from a basic

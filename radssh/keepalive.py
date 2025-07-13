@@ -30,7 +30,7 @@ class ServerNotResponding(Exception):
     pass
 
 
-class KeepAlive(object):
+class KeepAlive:
     '''
     Transport global_request() is not able to handle the scenario that
     KeepAlive test requires. The "wait" parameter, if True, will include

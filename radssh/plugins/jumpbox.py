@@ -11,14 +11,14 @@
 '''Jumpbox support - allow connections to be made through paramiko connections via tunneling'''
 import getpass
 
-import radssh.ssh as ssh
+from radssh import ssh
 from radssh.authmgr import AuthManager
 import radssh.star_commands as star
 
 init_data = {}
 
 
-class JumpData(object):
+class JumpData:
     pass
 
 

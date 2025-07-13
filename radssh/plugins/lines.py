@@ -12,7 +12,7 @@
 '''Breakdown of unique lines (or words) from last command output'''
 
 
-class Histogram(object):
+class Histogram:
     def __init__(self):
         self.d = {}
 
@@ -24,8 +24,7 @@ class Histogram(object):
 
     def __iter__(self):
         values = [(v, k) for k, v in self.d.items()]
-        for count, value in sorted(values, reverse=True):
-            yield(count, value)
+        yield from sorted(values, reverse=True)
 
 
 def lines(cluster, logdir, cmd, *args):

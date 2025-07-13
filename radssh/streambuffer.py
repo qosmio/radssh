@@ -31,7 +31,7 @@ class StreamBuffer:
         self.delimiter = delimiter
         self.blocksize = blocksize
         # Local data: empty buffer with reset marker position
-        self.buffer = bytes()
+        self.buffer = b''
         self.marker = 0
         self.pull_marker = 0
         self.line_count = 0
@@ -52,11 +52,10 @@ class StreamBuffer:
             self.buffer += data
             if len(self.buffer) - self.marker > self.blocksize:
                 flush_needed = True
-        else:
-            # If empty push call, and there is queued data, flush what we collected
-            # regardless of blocksize length specified
-            if len(self.buffer) - self.marker > 0:
-                flush_needed = True
+        # If empty push call, and there is queued data, flush what we collected
+        # regardless of blocksize length specified
+        elif len(self.buffer) - self.marker > 0:
+            flush_needed = True
 
         if self.queue and flush_needed:
             pending = self.buffer[self.marker:]

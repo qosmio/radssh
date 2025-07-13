@@ -52,7 +52,7 @@ def load(filename):
         if filename not in _loaded_files:
             try:
                 _loaded_files[filename] = KnownHosts(filename)
-            except IOError as e:
+            except OSError as e:
                 logger.info(f'Unable to load known_hosts from {filename}: {str(e)}')
                 _loaded_files[filename] = KnownHosts()
                 _loaded_files[filename]._filename = filename
@@ -81,8 +81,7 @@ def find_all_keys(hostname, port=22):
     if not _loaded_files:
         load('~/.ssh/known_hosts')
     for f in _loaded_files.values():
-        for key in f.matching_keys(hostname, port):
-            yield key
+        yield from f.matching_keys(hostname, port)
 
 
 def verify_transport_key(t, hostname, port, sshconfig):
@@ -149,13 +148,12 @@ def verify_transport_key(t, hostname, port, sshconfig):
         for keyval in entries:
             if not add_key(keyval, hostkey, True):
                 raise Exception(f'Declined host key for {keyval} - aborting connection')
-    else:
-        # Add host and IP entry as a single line
-        if not add_key(','.join(entries), hostkey, False):
-            raise Exception(f"Declined host key for {','.join(entries)} - aborting connection")
+    # Add host and IP entry as a single line
+    elif not add_key(','.join(entries), hostkey, False):
+        raise Exception(f"Declined host key for {','.join(entries)} - aborting connection")
 
 
-class KnownHosts (object):
+class KnownHosts :
     '''
     Implementation of SSH known_hosts file as a searchable object.
     Instead of Paramiko's lookup() returning a Dict (forcing a 1:1
@@ -221,7 +219,7 @@ class KnownHosts (object):
         of the loaded files, in order.
         '''
         offset = len(self._lines)
-        with open(filename, 'r') as f:
+        with open(filename) as f:
             for lineno, line in enumerate(f):
                 self._lines.append(line.rstrip('\n'))
                 try:

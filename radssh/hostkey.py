@@ -21,7 +21,7 @@ import paramiko.hostkeys
 warnings.warn(FutureWarning('RadSSH hostkey module is no longer supported, and will be removed in release 2.0. Port existing code to use radssh.known_hosts instead.'))
 
 
-class CodeMap(object):
+class CodeMap:
     '''CodeMap class'''
     def __init__(self, **kwargs):
         self._fwd = kwargs
@@ -64,7 +64,7 @@ def printable_fingerprint(k):
     return ':'.join([f'{x:02x}' for x in seq])
 
 
-class HostKeyVerifier(object):
+class HostKeyVerifier:
     '''Class to control how (if) host keys are verified'''
     def __init__(self, mode='reject', known_hosts_file='~/.ssh/known_hosts'):
         self.mode = verify_mode.code(mode)

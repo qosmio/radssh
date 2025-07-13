@@ -14,29 +14,28 @@ RadSSH Module
 Simplified Paramiko interface for managing clustered SSH interaction
 '''
 
+import fnmatch
+import hashlib
+import ipaddress
+import logging
 import os
-import threading
+import queue
+import re
+import shlex
 import socket
+import subprocess
+import threading
 import time
 import uuid
-import fnmatch
-import ipaddress
-import re
-import logging
-import hashlib
-import shlex
-import subprocess
-import queue
 
 import paramiko
 
+from . import config, known_hosts
 from .authmgr import AuthManager
-from .streambuffer import StreamBuffer
-from .dispatcher import Dispatcher, UnfinishedJobs
 from .console import RadSSHConsole, user_password
-from . import known_hosts
-from . import config
+from .dispatcher import Dispatcher, UnfinishedJobs
 from .keepalive import KeepAlive, ServerNotResponding
+from .streambuffer import StreamBuffer
 
 # If main thread gets KeyboardInterrupt, use this to signal
 # running background threads to terminate prior to command completion
@@ -66,7 +65,6 @@ def filter_tty_attrs(line):
 
 def ip_matches_glob(ip_str, glob_pattern):
 	"""Check if an IP address matches a glob pattern like '192.168.1.*'"""
-	import fnmatch
 	return fnmatch.fnmatch(ip_str, glob_pattern)
 
 
@@ -86,7 +84,7 @@ def ip_in_network_or_glob(ip_str, pattern):
 		return False
 
 
-class Quota(object):
+class Quota:
     '''Quota values for auto-termination of in-flight commands'''
     def __init__(self, defaults={}):
         self.time_limit = int(defaults.get('quota.time', 0))
@@ -115,7 +113,7 @@ class Quota(object):
             return False
 
 
-class CommandResult(object):
+class CommandResult:
     '''Generic object to save a bunch of fields'''
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -125,7 +123,7 @@ class CommandResult(object):
         return f'{self.status} "{self.command}" : [{self.return_code}]'
 
 
-class Chunker(object):
+class Chunker:
     '''Allow list of host connections to be chunkified into sublists'''
     def __init__(self, grouping=10, delay=30):
         self.data = [[]]
@@ -242,7 +240,7 @@ def connection_worker(host, conn, auth, sshconfig={}):
                         f"Connected to {hostname} on port {port} via {sockaddr}"
                     )
                     break
-                except socket.error as e:
+                except OSError as e:
                     logging.getLogger("radssh").error(f"Failed to connect: {e} via {sockaddr} with timeout {timeout}")
                     continue
             else:
@@ -365,7 +363,7 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
                     prompt_lines = [x.strip() for x in data.split('\n') if x.strip()]
                     persist_prompt = prompt_lines[-1]
                     stdout.push(f'\n=== Start of Exec: Prompt is [{persist_prompt}] ===\n\n')
-                except (socket.timeout, IndexError):
+                except (TimeoutError, IndexError):
                     persist_prompt = None
                     stdout.push(f'\n=== Start of Exec: Failed to read prompt [{data}] ===\n\n')
                 s.send(f'{cmd}\n')
@@ -397,7 +395,7 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
                     stdout_eof = True
                     # Avoid wild CPU-bound thrashing under Python3 GIL
                     s.status_event.wait(0.01)
-            except socket.timeout:
+            except TimeoutError:
                 # Push out a (nothing) in case the queue needs to do a time-based dump
                 stdout.push('')
                 quiet_time += quiet_increment
@@ -416,7 +414,7 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
                     stderr.push(data)
                 else:
                     stderr_eof = True
-            except socket.timeout:
+            except TimeoutError:
                 pass
             # Check quota limits
             if quota.time_exceeded(quiet_time):
@@ -464,7 +462,7 @@ def sftp_thread(host, t: paramiko.Transport, srcfile, dstfile=None, attrs=None):
     s.chmod(dstfile, attrs.st_mode % 4096)
     try:
         s.chown(dstfile, attrs.st_uid, attrs.st_gid)
-    except IOError:
+    except OSError:
         pass
     s.close()
     return CommandResult(command=f'SFTP {srcfile} -> {dstfile}',
@@ -483,7 +481,7 @@ def close_connection(t, k, signoff=''):
         t.close()
 
 
-class Cluster(object):
+class Cluster:
     '''SSH Cluster'''
     def __init__(self, hostlist, auth=None, console=None, mux={}, defaults={}, commandline_options={}):
         '''Create a Cluster object from a list of host entries'''
@@ -528,13 +526,13 @@ class Cluster(object):
             try:
                 with open(os.path.expanduser(defaults['ssh_config'])) as user_config:
                     self.sshconfig.parse(user_config)
-            except IOError as e:
+            except OSError as e:
                 logging.getLogger('radssh').warning('Unable to process user ssh_config file: %s', e)
             if os.path.exists(system_config := os.path.expanduser('~/.ssh/config')):
                 try:
                     with open(system_config) as sysconfig:
                         self.sshconfig.parse(sysconfig)
-                except IOError as e:
+                except OSError as e:
                     logging.getLogger('radssh').warning('Unable to process system ssh_config file (%s): %s', system_config, e)
 
         for label, conn in hostlist:
@@ -646,7 +644,7 @@ class Cluster(object):
                             conn = socket.create_connection((fqdn, 22), timeout=float(self.defaults.get('socket.timeout', 2.0)))
                             self.console.message(f'{k} -> {fqdn}', 'FQDN')
                             break
-                        except socket.error:
+                        except OSError:
                             pass
             except Exception as e:
                 self.console.message(f'{str(k)} - {str(e)}', 'EXCEPTION')
@@ -954,11 +952,10 @@ class Cluster(object):
                     bad.append((k, f'({connect_time:7.3f}s) Not connected'))
                 elif not t.is_authenticated():
                     bad.append((k, f'({connect_time:7.3f}s) Connected to {t.getpeername()[0]} / not authenticated'))
+                elif k in self.disabled:
+                    good.append((k, f'({connect_time:7.3f}s) Authenticated as {t.get_username()} to {t.getpeername()[0]} (Disabled)'))
                 else:
-                    if k in self.disabled:
-                        good.append((k, f'({connect_time:7.3f}s) Authenticated as {t.get_username()} to {t.getpeername()[0]} (Disabled)'))
-                    else:
-                        good.append((k, f'({connect_time:7.3f}s) Authenticated as {t.get_username()} to {t.getpeername()[0]}'))
+                    good.append((k, f'({connect_time:7.3f}s) Authenticated as {t.get_username()} to {t.getpeername()[0]}'))
             else:
                 bad.append((k, f'({connect_time:8.3f}s) {str(t)}'))
         return good + bad
@@ -972,11 +969,10 @@ class Cluster(object):
                     dropped += 1
                 elif not t.is_authenticated():
                     failed_auth += 1
+                elif k in self.disabled:
+                    disabled += 1
                 else:
-                    if k in self.disabled:
-                        disabled += 1
-                    else:
-                        ready += 1
+                    ready += 1
             else:
                 failed_connect += 1
         return (ready, disabled, failed_auth, failed_connect, dropped)

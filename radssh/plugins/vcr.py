@@ -29,7 +29,7 @@ def init(**kwargs):
         raise RuntimeError('VCR: Unable to initialize', 'RadSSH shell not accessible')
 
 
-class Recorder(object):
+class Recorder:
     def __init__(self, filename, vars={}):
         self.active = True
         self.data = []
@@ -116,7 +116,7 @@ def playback(cluster, logdir, cmd, *args):
     if os.path.exists(f"{filename}.vars"):
         print('Loading saved variables...')
         try:
-            with open(f"{filename}.vars", 'r') as var_file:
+            with open(f"{filename}.vars") as var_file:
                 cluster.user_vars.update(eval(var_file.read()))
         except Exception as e:
             print(f"Failed to load variables from [{filename}].vars")

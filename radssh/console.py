@@ -19,13 +19,12 @@ to be a pair (label, stderr), where label is typically a hostname
 and stderr is a boolean indicating if the message content came from
 stderr (highlight) or not.
 '''
-import sys
-import threading
 import getpass
 import ipaddress
-from collections import deque, defaultdict
 import queue
-
+import sys
+import threading
+from collections import defaultdict, deque
 
 console_mutex = threading.Lock()
 
@@ -84,13 +83,16 @@ class RadSSHConsole:
         if hostlist:
             label_widths = []
             for label, _ in hostlist:
-                if isinstance(label, ipaddress.IPv4Address) or isinstance(label, ipaddress.IPv6Address):
-                    label = label.compressed
-                label_widths.append(len(label))
+                if isinstance(label, ipaddress.IPv4Address) or isinstance(
+                    label, ipaddress.IPv6Address
+                ):
+                    label_widths.append(len(label.compressed))
+                else:
+                    label_widths.append(len(label))
             self.max_label_width = max(label for label in label_widths)
         self.background_thread = threading.Thread(target=self.console_thread, args=())
         self.background_thread.daemon = True
-        self.background_thread.name = 'Console Output'
+        self.background_thread.name = "Console Output"
         self.background_thread.start()
 
         def limit_deque():

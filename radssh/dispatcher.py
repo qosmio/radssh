@@ -28,7 +28,7 @@ class UnfinishedJobs(Exception):
         self.message = f'Waiting on {int(remaining)} of {int(total)} results'
 
 
-class JobSummary(object):
+class JobSummary:
     '''Dispatcher info returned from a submitted Job'''
     def __init__(self, completed, job_id, result, start_time=None, **kwargs):
         self.job_id = job_id
@@ -71,7 +71,7 @@ def generic_dispatch(inQ, outQ):
             inQ.task_done()
 
 
-class Dispatcher(object):
+class Dispatcher:
     '''Generic threaded queue job dispatcher'''
     def __init__(self, outQ=None, threadpool_size=100, dynamic_expansion=False):
         self.inQ = queue.Queue()

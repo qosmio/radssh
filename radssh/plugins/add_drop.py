@@ -14,7 +14,7 @@
 # set of cluster connections.
 
 import paramiko
-import radssh.ssh as ssh
+from radssh import ssh
 
 
 def star_add(cluster, logdir, cmd, *args):

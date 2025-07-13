@@ -14,19 +14,18 @@ authentication possibilities to connect to multiple servers via Paramiko.
 Supports loading from an authentication file that can contain passwords
 or key files, and a way to match them to a host or hosts.
 '''
-import os
-import warnings
-import fnmatch
-import threading
-import logging
 import base64
-
+import fnmatch
 import ipaddress
+import logging
+import os
+import threading
+import warnings
 
 import paramiko
 
-from .pkcs import PKCS_OAEP
 from .console import user_password
+from .pkcs import PKCS_OAEP
 
 
 def ip_matches_glob(ip_str, glob_pattern):
@@ -51,7 +50,7 @@ def ip_in_network_or_glob(ip_str, pattern):
 		return False
 
 
-class PlainText(object):
+class PlainText:
     '''
     PlainText simply saves the string, and returns it. Nothing fancy.
     '''
@@ -62,7 +61,7 @@ class PlainText(object):
         return self.plaintext
 
 
-class RSAES_OAEP_Text(object):
+class RSAES_OAEP_Text:
     '''
     Class to permit decryption of password encoded with user's private key.
     Save the ciphertext, defer the decryption to plaintext until the
@@ -217,7 +216,7 @@ def _importKey(filename, allow_prompt=True, logger=None):
 UNUSED_PARAMETER = object()
 
 
-class AuthManager(object):
+class AuthManager:
     '''Manage keys and passwords used for paramiko authentication'''
     # Next major release (2.0) change the API call to no longer support include_agent
     # and include_userkeys parameters in favor of ssh_config based options to control
@@ -249,7 +248,7 @@ class AuthManager(object):
     def read_auth_file(self, auth_file):
         ''' Read in settings from an authfile. See docs for example format.'''
         try:
-            with open(auth_file, 'r') as f:
+            with open(auth_file) as f:
                 for line_no, line in enumerate(f, 1):
                     line = line.rstrip('\n\r')
                     fields = line.split('|', 2)
@@ -288,7 +287,7 @@ class AuthManager(object):
                     else:
                         warnings.warn(RuntimeWarning(f'Unsupported auth type [{auth_file}:{int(line_no)}] {fields[0]}'))
                         self.logger.error('Unsupported auth type "%s" referenced in %s (line %d)', fields[0], auth_file, line_no)
-        except IOError:
+        except OSError:
             # Quietly fail if auth_file cannot be read
             pass
 
@@ -483,6 +482,7 @@ class AuthManager(object):
 
 if __name__ == '__main__':
     import sys
+
     from .known_hosts import printable_fingerprint
     logging.basicConfig(level=logging.ERROR)
     if not sys.argv[1:]:

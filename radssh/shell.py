@@ -174,7 +174,7 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None)
 # Supports *commands, executables (LOCAL), and path (REMOTE) completion
 
 
-class radssh_tab_handler(object):
+class radssh_tab_handler:
     '''Class wrapper for readline TAB key completion'''
     def __init__(self, cluster, star):
         # Need access to the cluster object to get SFTP service
@@ -299,7 +299,7 @@ def safe_write_history_file(filename):
     # To avoid false negative, use stat() to test the file modification times
     try:
         readline.write_history_file(filename)
-    except IOError as e:
+    except OSError as e:
         # Ignore this exception if we wrote out the history file recently
         try:
             post = os.stat(filename).st_mtime
@@ -310,7 +310,7 @@ def safe_write_history_file(filename):
 
 def remove_duplicates(filename):
     try:
-        with open(filename, 'r') as f:
+        with open(filename) as f:
             lines = f.readlines()
 
         seen = set()
@@ -503,17 +503,16 @@ def radssh_shell_main():
     ready, disabled, failed_auth, failed_connect, dropped = cluster.connection_summary()
     if defaults['loglevel'] not in ('CRITICAL', 'ERROR'):
         star.star_info(cluster, logdir, '', [])
-    else:
-        # If cluster is not 100% connected, let user know even if loglevel is not low enough
-        if any((failed_auth, failed_connect, dropped)):
-            print('There were problems connecting to some nodes:')
-            if failed_connect:
-                print(f'    {int(failed_connect)} nodes failed to connect')
-            if failed_auth:
-                print(f'    {int(failed_auth)} nodes failed authentication')
-            if dropped:
-                print(f'    {int(dropped)} dropped connections')
-            print('    Use "*info" for connection details.')
+    # If cluster is not 100% connected, let user know even if loglevel is not low enough
+    elif any((failed_auth, failed_connect, dropped)):
+        print('There were problems connecting to some nodes:')
+        if failed_connect:
+            print(f'    {int(failed_connect)} nodes failed to connect')
+        if failed_auth:
+            print(f'    {int(failed_auth)} nodes failed authentication')
+        if dropped:
+            print(f'    {int(dropped)} dropped connections')
+        print('    Use "*info" for connection details.')
 
     if ready == 1 and disabled + failed_auth + failed_connect + dropped == 0:
         # Cluster size of one - check if auto_tty is set
@@ -530,7 +529,7 @@ def radssh_shell_main():
         histfile = os.path.expanduser(defaults['historyfile'])
         try:
             read_history_without_dupes(histfile)
-        except IOError:
+        except OSError:
             pass
         readline.set_history_length(int(os.environ.get('HISTSIZE', 100000)))
         atexit.register(readline.write_history_file, histfile)

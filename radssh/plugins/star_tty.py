@@ -12,7 +12,6 @@
 '''Sequentially invoke single TTY ssh sessions'''
 
 import sys
-import socket
 import select
 import termios
 import tty
@@ -57,7 +56,7 @@ def posix_shell(chan, encoding='UTF-8'):
                         print((partial_buf + x).decode(encoding), end='')
                         sys.stdout.flush()
                         partial_buf = b''
-                except socket.timeout:
+                except TimeoutError:
                     pass
                 except UnicodeError:
                     # Keep the bytes read to append to on next pass

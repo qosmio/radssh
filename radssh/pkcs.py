@@ -36,7 +36,7 @@ try:
     # cryptography.io way - RSA private key object provides decrypt,
     # public key object provides encrypt, but each needs a padding
     # parameter of OAEP that needs to be constructed.
-    class PKCS1_OAEP(object):
+    class PKCS1_OAEP:
         def __init__(self, setup):
             self.backend = cryptography.hazmat.backends.default_backend()
             self.oaep = padding.OAEP(
@@ -72,7 +72,7 @@ except ImportError:
     # Handle this gracefully by making the class still able to be instantiated
     # but attempts to encrypt/decrypt raising exceptions instead of import or
     # class constructor.
-    import Crypto.PublicKey.RSA as RSA
+    from Crypto.PublicKey import RSA
     warnings.warn(Warning('PyCrypto module is no longer actively maintained - consider installing cryptography'))
     try:
         import Crypto.Cipher.PKCS1_OAEP
@@ -104,7 +104,7 @@ class PKCSError(Exception):
     pass
 
 
-class PKCS_OAEP(object):
+class PKCS_OAEP:
     '''
         Asymmetric key encryptor/decryptor based on PKCS#1 RSAES-OAEP
         Based on a loadable RSA key (private or public), provide encrypt() and
@@ -127,7 +127,7 @@ class PKCS_OAEP(object):
                 self.cipher_object = None
             else:
                 raise PKCSError('Key format not recognized', keyfile)
-        except IOError:
+        except OSError:
             self.cipher_object = None
             self.keydata = None
         self.unsupported = not PKCS1_OAEP
@@ -198,10 +198,10 @@ def main(args):
     print(f'Using RSA keyfile: [{pkcs.keyfile}]')
 
     for x in args:
-        if x == '--decrypt' or x == '-d':
+        if x in {'--decrypt', '-d'}:
             print('Switching to Decrypt mode')
             encoding_mode = False
-        elif x == '--encrypt' or x == '-e':
+        elif x in {'--encrypt', '-e'}:
             print('Switching to Encrypt mode')
             encoding_mode = True
         elif x.startswith('--key='):

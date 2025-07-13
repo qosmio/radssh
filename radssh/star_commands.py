@@ -22,17 +22,17 @@ This dict can be extended via plugins. This module provides the core
 collection of *commands.
 '''
 
+import logging
 import os
-import socket
+import pprint
 import select
+import socket
 import sys
 import threading
-import pprint
 import traceback
-import logging
 
-from .ssh import CommandResult
 from .plugins import StarCommand
+from .ssh import CommandResult
 
 forwarding_dest = ('127.0.0.1', 80)
 

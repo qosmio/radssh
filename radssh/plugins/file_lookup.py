@@ -32,7 +32,7 @@ def lookup(name):
     if os.path.isdir(name):
         return __generator(os.listdir(name))
     if os.path.isfile(name) or os.path.islink(name):
-        content = open(name, 'r').readlines()
+        content = open(name).readlines()
         if content:
             return __generator(content)
     return None

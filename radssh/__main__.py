@@ -43,7 +43,7 @@ def open_file(name):
     """
     Return an open file object.
     """
-    return open(name, 'r')
+    return open(name)
 
 
 def start_thread(event):
