@@ -88,9 +88,9 @@ def command_listener(cmd):
         except ValueError:
             pass
 
-    # Save last_command prior to alias substitution so that alias
-    # substitution result is not saved into last_command.
-    last_command = new_cmd
+    # Save the original command (before alias substitution) as last_command
+    # so that history recalls the original command, not the expanded alias
+    last_command = cmd
 
     if words[0] in aliases:
         new_cmd = new_cmd.replace(words[0], aliases[words[0]], 1)

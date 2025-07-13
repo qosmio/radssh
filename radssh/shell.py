@@ -55,7 +55,7 @@ except ImportError:
 # Try using colorama when running on Windows
 if sys.platform.startswith('win'):
     try:
-        import colorama
+        import colorama  # pyright: ignore[reportMissingModuleSource]
         colorama.initialise.init()
     except Exception as e:
         print('Unable to support ANSI escape sequences via colorama module')
@@ -78,6 +78,7 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None)
     if not defaults:
         defaults = config.load_default_settings()
     while True:
+        original_cmd = None
         try:
             if playbackfile:
                 try:
@@ -91,16 +92,19 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None)
                 except KeyboardInterrupt:
                     print('\n<Ctrl-C> during input\nUse EOF (<Ctrl-D>) or *exit to exit shell\n')
                     continue
+                # Store original command for history before any modifications
+                original_cmd = cmd
                 # Feed command line to any registered listeners from plugins
                 for feed in command_listeners:
                     feed_result = feed(cmd)
                     if feed_result:
                         if defaults['show_altered_commands'] == 'on':
-                            cluster.console.message(f'Command modified from "{cmd}" to "{feed_result}"')
+                            cluster.console.message(f'Command modified from "{original_cmd}" to "{feed_result}"')
                         cmd = str(feed_result)
                 if logdir:
                     with open(os.path.join(logdir, 'session.commands'), 'a') as f:
-                        f.write(f'{cmd}\n')
+                        f.write(f'{original_cmd}\n')
+            # Store original command for history before any modifications
             args = cmd.split()
             if len(args) > 0:
                 if os.path.basename(args[0]) == 'sudo' and len(args) > 1:
@@ -108,14 +112,14 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None)
                 else:
                     initial_command = os.path.basename(args[0])
                 if initial_command in defaults['commands.forbidden'].split(','):
-                    print(f'You really don\'t want to run {initial_command} without a TTY, do you?')
+                    print(f"You really don't want to run {initial_command} without a TTY, do you?")
                     continue
                 if initial_command in defaults['commands.restricted'].split(','):
                     print(f'STOP! "{initial_command}" is listed as a restricted command (Potentially dangerous)')
                     print('and requires explicit confirmation before running.')
                     print('Please double check all parameters, just to be sure...')
                     print('   >>>', cmd)
-                    confirm = input('Enter \'100%\' if completely sure: ')
+                    confirm = input('Enter ''100%'' if completely sure: ')
                     if confirm != '100%':
                         continue
                 if args[0].startswith('#'):
@@ -130,7 +134,7 @@ def shell(cluster, logdir=None, playbackfile=None, defaults=None, histfile=None)
                     continue
                 r = cluster.run_command(cmd)
                 if histfile:
-                    add_to_history(cmd)
+                    add_to_history(original_cmd or cmd)
                     readline.write_history_file(histfile)
                 if logdir:
                     cluster.log_result(logdir, encoding=defaults['character_encoding'])
@@ -532,7 +536,7 @@ def radssh_shell_main():
         atexit.register(readline.write_history_file, histfile)
 
     # Add TAB completion for *commands and remote file paths
-    star.tab_completion = radssh_tab_handler(cluster, star)
+    radssh_tab_handler(cluster, star)
 
     # With the cluster object, start interactive session
     shell(cluster=cluster, logdir=logdir, defaults=defaults, histfile=histfile)
