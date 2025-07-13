@@ -497,7 +497,7 @@ class Cluster(object):
             # Limit console queue size to 4x connections to avoid excess
             # bottleneck when extremely high volume output
             outQ = queue.Queue(min(100, 4 * len(hostlist)))
-            self.console = RadSSHConsole(outQ)
+            self.console = RadSSHConsole(outQ, hostlist=hostlist)
             self.console.quiet(True)
         if defaults:
             self.defaults = defaults

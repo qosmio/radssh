@@ -22,6 +22,7 @@ stderr (highlight) or not.
 import sys
 import threading
 import getpass
+import ipaddress
 from collections import deque, defaultdict
 import queue
 
@@ -41,22 +42,26 @@ def user_password(prompt):
     return answer
 
 
-def monochrome(tag, text):
+def monochrome(tag, text, max_label_width=0):
     '''Basic Formatter for plain (monochrome) output'''
     label, _ = tag
+    if max_label_width > 0:
+        label = label.rjust(max_label_width)
     for line in text.split('\n'):
-        yield f'[{label}] {line}\n'
+        yield f'{label}| {line}\n'
 
 
-def colorizer(tag, text):
+def colorizer(tag, text, max_label_width=0):
     '''Basic ANSI colorized output - host hash value map to 7-color palette, stderr bold'''
     label, hilight = tag
-    color = 1 + hash(label) % 7
+    if max_label_width > 0:
+        label = label.rjust(max_label_width)
+    color = 1 + hash(label.strip()) % 7
     for line in text.split('\n'):
         if hilight:
-            yield f'\x1b[30;4{int(color)}m[{label}]\x1b[0;1;3{int(color)}m {line}\x1b[0m\n'
+            yield f'\x1b[30;4{int(color)}m{label}|\x1b[0;1;3{int(color)}m {line}\x1b[0m\n'
         else:
-            yield f'\x1b[3{int(color)}m[{label}] {line}\x1b[0m\n'
+            yield f'\x1b[3{int(color)}m{label}| {line}\x1b[0m\n'
 
 
 class RadSSHConsole:
@@ -66,13 +71,23 @@ class RadSSHConsole:
     When run in a terminal window, uses ANSI escape sequences to
     colorize output, and use the window/tab title for status messages.
     '''
-    def __init__(self, q=None, formatter=colorizer, retain_recent=0):
+    def __init__(self, q=None, formatter=colorizer, retain_recent=0, hostlist=None):
         if q:
             self.q = q
         else:
             self.q = queue.Queue(300)
         self.formatter = formatter
         self.quietmode = False
+        # Calculate maximum label width for right-alignment
+        self.max_label_width = 0
+        self.hostlist = hostlist
+        if hostlist:
+            label_widths = []
+            for label, _ in hostlist:
+                if isinstance(label, ipaddress.IPv4Address) or isinstance(label, ipaddress.IPv6Address):
+                    label = label.compressed
+                label_widths.append(len(label))
+            self.max_label_width = max(label for label in label_widths)
         self.background_thread = threading.Thread(target=self.console_thread, args=())
         self.background_thread.setDaemon(True)
         self.background_thread.setName('Console Output')
@@ -133,10 +148,18 @@ class RadSSHConsole:
                 if not self.quietmode:
                     with console_mutex:
                         # Tag is tuple of (label, stderr_flag)
-                        for line in self.formatter(tag, text):
-                            print(line, end='')
-                            if self.retain_recent:
-                                self.recent_history[str(tag[0])].append(line)
+                        try:
+                            # Try calling formatter with max_label_width parameter
+                            for line in self.formatter(tag, text, self.max_label_width):
+                                print(line, end='')
+                                if self.retain_recent:
+                                    self.recent_history[str(tag[0])].append(line)
+                        except TypeError:
+                            # Fallback for formatters that don't support max_label_width
+                            for line in self.formatter(tag, text):
+                                print(line, end='')
+                                if self.retain_recent:
+                                    self.recent_history[str(tag[0])].append(line)
                         sys.stdout.flush()
             except Exception as e:
                 print(f'Console Thread Exception: {str(e)}\n')

@@ -482,7 +482,7 @@ def radssh_shell_main():
         module_name, function_name = console_name.split('.', 1)
         try:
             custom_formatter = getattr(loaded_plugins[module_name], function_name)
-            console = RadSSHConsole(formatter=custom_formatter, retain_recent=job_buffer)
+            console = RadSSHConsole(formatter=custom_formatter, retain_recent=job_buffer, hostlist=hosts)
         except KeyError:
             logger.error('Plugin not loaded for shell.console formatter %s', console_name)
         except AttributeError:
@@ -492,9 +492,9 @@ def radssh_shell_main():
     # Fallback to a standard console if plugin provided one did not load
     if console is None:
         if not sys.stdout.isatty() or console_name == 'monochrome':
-            console = RadSSHConsole(formatter=monochrome, retain_recent=job_buffer)
+            console = RadSSHConsole(formatter=monochrome, retain_recent=job_buffer, hostlist=hosts)
         else:
-            console = RadSSHConsole(retain_recent=job_buffer)
+            console = RadSSHConsole(retain_recent=job_buffer, hostlist=hosts)
 
     # Finally, we are able to create the Cluster
     print(f'Connecting to {len(hosts)} hosts...')

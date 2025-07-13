@@ -30,10 +30,12 @@ import re
 palette = list(range(20, 230))
 
 
-def ansi256(tag, text):
+def ansi256(tag, text, max_label_width=0):
     '''ANSI 256 colorized output with semi-restricted palette'''
     label, hilight = tag
-    color = palette[hash(label) % len(palette)]
+    if max_label_width > 0:
+        label = label.rjust(max_label_width)
+    color = palette[hash(label.strip()) % len(palette)]
     for line in text.split('\n'):
         if hilight:
             yield f'\x1b[1;38;5;{int(color)}m[{label}] {line}\x1b[0m\n'
@@ -41,7 +43,7 @@ def ansi256(tag, text):
             yield f'\x1b[38;5;{int(color)}m[{label}] {line}\x1b[0m\n'
 
 
-def ansi256_rj(tag, text):
+def ansi256_rj(tag, text, max_label_width=0):
     '''ANSI 256 colorized output, with host label right-justified'''
     label, hilight = tag
     height, width = struct.unpack('hh', fcntl.ioctl(0, termios.TIOCGWINSZ, '1234'))
@@ -64,11 +66,13 @@ def ip_hash(hstr0):
     return hval
 
 
-def ip_colorizer(tag, text):
+def ip_colorizer(tag, text, max_label_width=0):
     '''Alternative ANSI colorized output - ensure that IP address ranges cycle colors more uniformly'''
     # Copied from standard colorizer, but with a custom hash function
     label, hilight = tag
-    color = 1 + ip_hash(str(label)) % 7
+    if max_label_width > 0:
+        label = label.rjust(max_label_width)
+    color = 1 + ip_hash(str(label.strip())) % 7
     for line in text.split('\n'):
         if hilight:
             yield f'\x1b[30;4{int(color)}m[{label}]\x1b[0;1;3{int(color)}m {line}\x1b[0m\n'
