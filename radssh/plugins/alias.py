@@ -21,19 +21,21 @@ import re
 import logging
 
 def gather_history():
-    '''Pull history lines as a list'''
+    '''Pull history lines as a list, stripping whitespace'''
     result = []
     for n in range(1, 1 + readline.get_current_history_length()):
-        line = readline.get_history_item(n)
-        result.append(line)
+        line = readline.get_history_item(n).strip()
+        if line:
+            result.append(line)
     return result
 
 
 def star_history(cluster, logdir, cmd, *args):
-    '''Print recent RadSSH command line history'''
+    '''Print recent RadSSH command line history, avoiding duplicates'''
     hist = gather_history()
-    for n, line in enumerate(hist, 1):
-        print(f'{int(n):5} - {line}')
+    unique_hist = list(dict.fromkeys(hist))  # Preserve order and remove duplicates
+    for n, line in enumerate(unique_hist, 1):
+       print(f'{int(n):5} - {line}')
 
 
 last_command = ''

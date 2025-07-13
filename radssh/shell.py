@@ -27,7 +27,6 @@ import time
 import socket
 import pprint
 import readline
-import atexit
 import logging
 
 from . import ssh
@@ -321,8 +320,8 @@ def remove_duplicates(filename):
                 seen.add(line.strip())
         unique_lines.reverse()  # Restore the order
 
-        # with open(filename, 'w') as f:
-            # f.write('\n'.join(unique_lines) + '\n')
+        with open(filename, 'w') as f:
+            f.write('\n'.join(unique_lines) + '\n')
     except FileNotFoundError:
         pass  # If the file doesn't exist, just ignore
 
@@ -339,10 +338,39 @@ def add_to_history(command):
 
 
 def read_history_without_dupes(filename):
-    # remove_duplicates(filename)
-    readline.set_pre_input_hook(lambda: readline.clear_history())
-    readline.read_history_file(filename)
+    if sys.platform.startswith('darwin'):
+        readline.set_pre_input_hook(lambda: readline.clear_history())
+        readline.read_history_file(filename)
+        return
+    try:
+        # Load existing history into memory
+        readline.read_history_file(filename)
 
+        # Remove duplicates in the file
+        remove_duplicates(filename)
+
+        # Clear in-memory history before reloading unique history
+        readline.clear_history()
+
+        # Reload unique history back into in-memory history
+        with open(filename) as f:
+            for line in f:
+                command = line.strip()
+
+                # Only add if it's not already in in-memory history
+                if command and not is_duplicate_in_memory(command):
+                    readline.add_history(command)
+    except FileNotFoundError:
+        pass  # Ignore if the history file doesn't exist
+
+
+def is_duplicate_in_memory(command):
+    """Helper function to check if a command is already in the in-memory history"""
+    history_size = readline.get_current_history_length()
+    for i in range(1, history_size + 1):
+        if readline.get_history_item(i).strip() == command:
+            return True
+    return False
 ################################################################################
 
 def radssh_shell_main():
@@ -532,7 +560,7 @@ def radssh_shell_main():
         except OSError:
             pass
         readline.set_history_length(int(os.environ.get('HISTSIZE', 100000)))
-        atexit.register(readline.write_history_file, histfile)
+        # atexit.register(readline.write_history_file, histfile)
 
     # Add TAB completion for *commands and remote file paths
     radssh_tab_handler(cluster, star)
