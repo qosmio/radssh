@@ -222,7 +222,7 @@ class AuthManager(object):
     # Next major release (2.0) change the API call to no longer support include_agent
     # and include_userkeys parameters in favor of ssh_config based options to control
     # exactly the same behavior. Issue a FutureWarning for now if these parameters are used.
-    def __init__(self, default_user, auth_file='./.radssh_authfile', include_agent=UNUSED_PARAMETER, include_userkeys=UNUSED_PARAMETER, default_password=None, try_auth_none=True):
+    def __init__(self, default_user=None, auth_file='./.radssh_authfile', include_agent=UNUSED_PARAMETER, include_userkeys=UNUSED_PARAMETER, default_password=None, try_auth_none=True):
         if include_agent != UNUSED_PARAMETER:
             warnings.warn(FutureWarning(f'AuthManager will no longer support include_agent starting with 2.0: passed value ({include_agent}) ignored'), stacklevel=2)
         if include_userkeys != UNUSED_PARAMETER:
@@ -303,7 +303,7 @@ class AuthManager(object):
         '''Append to a list of explicit keys to try, separate from any agent keys'''
         self.keys.append((filter, key))
 
-    def authenticate(self, T, sshconfig={}):
+    def authenticate(self, T: paramiko.Transport, sshconfig={}):
         '''
         Try available ways to authenticate a paramiko Transport.
         Attempts are made in the following progression:
@@ -395,7 +395,7 @@ class AuthManager(object):
                     while not auth_success and retries > 0 and T.is_active():
                         if not password:
                             password = PlainText(user_password(
-                                f'Please enter a password for ({auth_user}@{T.getName()}) :'))
+                                f'Please enter a password for ({auth_user}@{T.name}) :'))
                             retries -= 1
                         auth_success = self.try_auth(T, [(None, password)], True, auth_user)
                         if auth_success:

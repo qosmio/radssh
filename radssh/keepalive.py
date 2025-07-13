@@ -56,7 +56,13 @@ class KeepAlive(object):
     string "keepalive@openssh.com". All that is needed is that the server
     sends some response, even if it is a failure, to set the Event.
     '''
-    def __init__(self, transport, threshold=5):
+    def __init__(self, transport: paramiko.Transport, threshold: int = 5):
+        """
+        Initialize the KeepAlive instance.
+
+        :param transport: The Paramiko Transport object to use for keepalive.
+        :param threshold: The number of consecutive failed pings before raising an exception.
+        """
         self.transport = transport
         self.threshold = threshold
         self.transport.completion_event = threading.Event()
@@ -75,5 +81,5 @@ class KeepAlive(object):
             return True
         self.pending_count += 1
         if self.pending_count > self.threshold:
-            raise ServerNotResponding(self.transport.getName())
+            raise ServerNotResponding(self.transport.name)
         return False

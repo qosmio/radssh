@@ -55,7 +55,7 @@ def command_listener(cmd):
     global vcr
     if vcr:
         args = cmd.split()
-        if args and not args[0] in star_commands:
+        if args and args[0] not in star_commands:
             vcr.feed(cmd)
 
 

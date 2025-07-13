@@ -34,7 +34,7 @@ class JobSummary(object):
         self.job_id = job_id
         self.result = result
         self.completed = completed
-        self.thread_name = threading.currentThread().getName()
+        self.thread_name = threading.current_thread().name
         self.end_time = time.time()
         # if we don't have a start_time, then default it to end_time (instant)
         self.start_time = start_time if start_time else self.end_time
@@ -96,8 +96,8 @@ class Dispatcher(object):
             return
         while num > 0 and len(self.workers) < self.threadpool_size:
             thr = threading.Thread(target=generic_dispatch, args=(self.inQ, self.outQ))
-            thr.setDaemon(True)
-            thr.setName(f'dispatcher-{int(next(self.thread_sequence))}')
+            thr.daemon = True
+            thr.name = f'dispatcher-{int(next(self.thread_sequence))}'
             thr.start()
             self.workers.append(thr)
             num -= 1

@@ -57,9 +57,6 @@ def star_help(cluster=None, logdir=None, cmdline=None, *args):
         return
     for cmd in sorted(commands.keys()):
         func = commands[cmd]
-        if not isinstance(func, StarCommand):
-            print(f'{cmd} (old-style) - {func.__doc__}')
-            continue
         if func.version:
             print(f'{cmd} ({func.version}) - {func.synopsis}')
         else:
@@ -203,7 +200,7 @@ def forwarding(channel, origin, server):
     try:
         s = socket.create_connection(forwarding_dest)
         bk = threading.Thread(target=flow, args=(s, channel))
-        bk.setName(f'RemoteTunnel_{channel.get_name()}')
+        bk.name = f'RemoteTunnel_{channel.get_name()}'
         bk.start()
     except Exception as e:
         print('Remote forward failed:', repr(e))
@@ -211,7 +208,7 @@ def forwarding(channel, origin, server):
 
 def flow(s1, s2):
     while True:
-        r, w, x = select.select([s1, s2], [], [], 5.0)
+        r, _w, _x = select.select([s1, s2], [], [], 5.0)
         if s1 in r:
             data = s1.recv(4096)
             if data:

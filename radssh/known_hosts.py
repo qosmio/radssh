@@ -110,8 +110,7 @@ def verify_transport_key(t, hostname, port, sshconfig):
     # Check key for IP entry as well?
     if sshconfig.get('checkhostip', 'no') == 'yes':
         verify_ip = t.getpeername()[0]
-        keys = list(sys_known_hosts.matching_keys(verify_ip, int(port)))
-        keys.extend(user_known_hosts.matching_keys(verify_ip, int(port)))
+        keys = list(user_known_hosts.matching_keys(verify_ip, int(port)))
         for x in keys:
             if x.key.get_name() == hostkey.get_name():
                 if x.key.get_fingerprint() == hostkey.get_fingerprint():

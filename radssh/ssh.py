@@ -253,7 +253,7 @@ def connection_worker(host, conn, auth, sshconfig={}):
 
         run_local_command(conn, hostname, port, auth.default_user, sshconfig)
         t = paramiko.Transport(s)
-        t.setName(host)
+        t.name = host
 
         ciphers = sshconfig.get('ciphers')
         if ciphers:
@@ -297,7 +297,7 @@ def connection_worker(host, conn, auth, sshconfig={}):
         # Socket (or sock-like) which is a probably a tunneled connection
         t = paramiko.Transport(conn)
         port = t.getpeername()[1]
-        t.setName(host)
+        t.name = host
         hostname = host
     t.set_log_channel(f'radssh.paramiko.transport.{host}')
     # Assign the ssh_config LogLevel to the paramiko.transport logger
@@ -372,7 +372,7 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
                 break
         else:
             s = t.open_session()
-            s.set_name(t.getName())
+            s.set_name(t.name)
             xcmd = cmd
             s.exec_command(xcmd)
         stdout_eof = stderr_eof = False
@@ -428,7 +428,7 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
             if quota.lines_exceeded(stdout.line_count):
                 process_completion = f'*** Line Limit ({int(quota.line_limit)}) Reached ***'
                 break
-            if user_abort.isSet():
+            if user_abort.is_set():
                 process_completion = '*** <Ctrl-C> Abort ***'
                 break
             # Make a guess if the command completed, since persistent sessions
@@ -454,7 +454,7 @@ def exec_command(host, t, cmd, quota, streamQ, encoding='UTF-8'):
         return CommandResult(command=cmd, return_code=return_code, status=process_completion, stdout=b'', stderr=b'')
 
 
-def sftp_thread(host, t, srcfile, dstfile=None, attrs=None):
+def sftp_thread(host, t: paramiko.Transport, srcfile, dstfile=None, attrs=None):
     if not attrs:
         attrs = paramiko.sftp_attr.SFTPAttributes.from_stat(os.stat(srcfile))
     s = t.open_sftp_client()
