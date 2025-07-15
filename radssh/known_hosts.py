@@ -378,8 +378,6 @@ class HostKeyEntry:
         try:
             if keytype == 'ssh-rsa':
                 key = paramiko.RSAKey(data=base64.b64decode(key))
-            elif keytype == 'ssh-dss':
-                key = paramiko.DSSKey(data=base64.b64decode(key))
             elif keytype == 'ecdsa-sha2-nistp256':
                 key = paramiko.ECDSAKey(data=base64.b64decode(key), validate_point=False)
             elif keytype == 'ssh-ed25519':

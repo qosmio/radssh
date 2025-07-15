@@ -310,20 +310,31 @@ def connection_worker(host, conn, auth, sshconfig={}):
             verify_host = sshconfig.get('hostkeyalias', str(hostname))
             user_known_hosts = known_hosts.load(sshconfig.get('userknownhostsfile', '~/.ssh/known_hosts'))
             keys = list(user_known_hosts.matching_keys(verify_host, int(port)))
+            logging.getLogger('radssh').debug('Found %d known_hosts keys for %s on port %s', len(keys), verify_host, port)
             if keys:
-                # Only request the key types from known_hosts
-                t._preferred_keys = [x.key.get_name() for x in keys]
+                # Always prefer modern key algorithms, but include known_hosts keys as fallbacks
+                known_host_keys = [x.key.get_name() for x in keys]
+                default_keys = sshconfig.get('hostkeyalgorithms', 'ssh-ed25519,ecdsa-sha2-nistp256,ssh-rsa').split(',')
+                # Start with default order, then add any known_hosts keys not already included
+                t._preferred_keys = default_keys + [k for k in known_host_keys if k not in default_keys]
+                logging.getLogger('radssh').debug('Host %s: known_hosts keys=%s, default_keys=%s, final_preferred=%s',
+                                                   host, known_host_keys, default_keys, t._preferred_keys)
             else:
                 # Order per HostKeyAlgorithms, or bump Paramiko precedence of ECDSA
-                t._preferred_keys = sshconfig.get('hostkeyalgorithms', 'ecdsa-sha2-nistp256,ssh-rsa,ssh-dss').split(',')
+                t._preferred_keys = sshconfig.get('hostkeyalgorithms', 'ssh-ed25519,ecdsa-sha2-nistp256,ssh-rsa').split(',')
+                logging.getLogger('radssh').debug('Host %s: no known_hosts keys, using default_keys=%s',
+                                                   host, t._preferred_keys)
             if not t.is_active():
                 t.start_client()
+            # Log what the server is offering after the handshake
+            if hasattr(t, 'server_key_dict') and t.server_key_dict:
+                server_host_keys = list(t.server_key_dict.keys())
+                logging.getLogger('radssh').debug('Host %s: server offers host key types: %s', host, server_host_keys)
             # Do the key verification based on sshconfig settings
             known_hosts.verify_transport_key(t, verify_host, int(port), sshconfig)
 
     except Exception as e:
         logging.getLogger('radssh').error('Unable to verify host key for %s\n%s', verify_host, repr(e))
-        print('Unable to verify host key for', verify_host)
         print(repr(e))
         t.close()
         print(f'Connection to {str(hostname)} closed.')
